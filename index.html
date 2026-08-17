@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Point AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tg: {
+                            bg: 'var(--tg-theme-bg-color, #ffffff)',
+                            text: 'var(--tg-theme-text-color, #000000)',
+                            hint: 'var(--tg-theme-hint-color, #999999)',
+                            link: 'var(--tg-theme-link-color, #2481cc)',
+                            button: 'var(--tg-theme-button-color, #2481cc)',
+                            'button-text': 'var(--tg-theme-button-text-color, #ffffff)',
+                            secondary: 'var(--tg-theme-secondary-bg-color, #f1f1f1)',
+                        }
+                    },
+                    screens: { 'xs': '375px' }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; }
+        .chat-scroll { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .chat-scroll::-webkit-scrollbar { width: 3px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: var(--ptb-border); border-radius: 2px; }
+        .fade-in { animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-dots span { animation: blink 1.4s infinite both; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+        @keyframes slideUp { from{opacity:0;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        :root {
+            --ptb-card: #f4f4f5;
+            --ptb-card-hover: #e4e4e7;
+            --ptb-border: #e4e4e7;
+            --ptb-input: #f4f4f5;
+            --ptb-chat-user: #3b82f6;
+            --ptb-chat-user-text: #ffffff;
+            --ptb-chat-ai: #f4f4f5;
+            --ptb-chat-ai-text: #18181b;
+            --ptb-success: #22c55e;
+            --ptb-error: #ef4444;
+            --ptb-success-bg: #f0fdf4;
+            --ptb-error-bg: #fef2f2;
+            --ptb-primary: #3b82f6;
+            --ptb-overlay: rgba(0,0,0,0.4);
+        }
+        @media(min-width:768px) {
+            .app-shell { max-width:480px; margin:0 auto; border-left:1px solid var(--ptb-border); border-right:1px solid var(--ptb-border); }
+        }
+        input[type="file"] { display:none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
+
+        const tg = window.Telegram?.WebApp;
+        if (tg) { tg.ready(); tg.expand(); }
+
+        /* ─── Theme ─── */
+        const THEMES = {
+            light: {
+                tg: { bg:'#ffffff', text:'#18181b', hint:'#71717a', link:'#3b82f6', button:'#3b82f6', 'button-text':'#ffffff', secondary:'#f4f4f5' },
+                card:'#f4f4f5', cardHover:'#e4e4e7', border:'#e4e4e7', input:'#f4f4f5',
+                chatUser:'#3b82f6', chatUserText:'#ffffff', chatAi:'#f4f4f5', chatAiText:'#18181b',
+                success:'#22c55e', error:'#ef4444', successBg:'#f0fdf4', errorBg:'#fef2f2',
+                overlay:'rgba(0,0,0,0.4)', shadow:'0 2px 12px rgba(0,0,0,0.08)',
+            },
+            dark: {
+                tg: { bg:'#0f0f1a', text:'#e4e4e7', hint:'#71717a', link:'#60a5fa', button:'#3b82f6', 'button-text':'#ffffff', secondary:'#1a1a2e' },
+                card:'#1a1a2e', cardHover:'#242444', border:'#2a2a4a', input:'#1a1a2e',
+                chatUser:'#3b82f6', chatUserText:'#ffffff', chatAi:'#1a1a2e', chatAiText:'#e4e4e7',
+                success:'#4ade80', error:'#f87171', successBg:'#052e16', errorBg:'#450a0a',
+                overlay:'rgba(0,0,0,0.6)', shadow:'0 2px 12px rgba(0,0,0,0.3)',
+            }
+        };
+        function getTheme(){ return localStorage.getItem('ptb-theme') || 'light'; }
+        function applyTheme(name){
+            const th = THEMES[name]||THEMES.light;
+            const r = document.documentElement;
+            Object.entries(th.tg).forEach(([k,v])=> r.style.setProperty('--tg-theme-'+k.replace(/([A-Z])/g,'-$1').toLowerCase()+'-color',v));
+            Object.entries(th).filter(([k])=>!k.startsWith('tg')).forEach(([k,v])=> r.style.setProperty('--ptb-'+k.replace(/([A-Z])/g,'-$1').toLowerCase(),v));
+            localStorage.setItem('ptb-theme',name);
+        }
+        applyTheme(getTheme());
+
+        /* ─── i18n (webapp-local) ─── */
+        const UI = {
+            ru: { chat:'Чат', profile:'Профиль', deposit:'Пополнить', history:'История', promo:'Промо', settings:'Настройки',
+                  theme:'Тема оформления', lang:'Язык интерфейса', light:'Светлая', dark:'Тёмная',
+                  wallet:'DUCO кошелёк', version:'Версия', emptyChat:'Напишите сообщение', chatHint:'Каждое сообщение стоит 1 P-Coin',
+                  messagePlaceholder:'Сообщение...', topUp:'+ Пополнить', historyTitle:'История операций',
+                  noHistory:'Пока ничего нет', depositTitle:'Пополнение баланса', transfer:'Перевод DUCO',
+                  mining:'Майнинг на кошелёк бота', howMuch:'Сколько P-Coin хотите?', example:'Например: 10',
+                  back:'Назад', next:'Далее', username:'Ваш ник в Duino-Coin', createReq:'Создать заявку',
+                  minerSetup:'Настройте майнер', reqCreated:'Заявка создана', sendExact:'Отправьте ровно',
+                  autoCheck:'Бот проверит платёж автоматически', promoTitle:'Активировать промокод', promoHint:'#слово',
+                  promoActivated:'Промокод активирован!', promoUsed:'Вы уже использовали этот промокод',
+                  promoNotFound:'Промокод не найден', settingsTitle:'Настройки', notLinked:'Не привязан',
+                  registration:'Регистрация', balanceLabel:'P-Coin баланс', spentLabel:'Всего потрачено',
+                  file:'Файл', photo:'Фото', video:'Видео', sendFile:'Отправить файл', cancel:'Отмена',
+                  chats:'Чаты', newChat:'Новый чат', deleteChat:'Удалить', chatDate:'Дата', confirmDelete:'Удалить чат?',
+                  profileTitle:'Профиль', settingsBtn:'Настройки', noUsername:'Без имени',
+                  sending:'Отправка...', networkError:'Ошибка сети', insufficientBalance:'Недостаточно P-Coin',
+                  typeDeposit:'Пополнение', typeExchange:'Обмен', typeSpend:'Списание', typeRefund:'Возврат',
+                  fileSent:'Файл отправлен', unsupportedType:'Тип файла не поддерживается',
+            },
+            en: { chat:'Chat', profile:'Profile', deposit:'Deposit', history:'History', promo:'Promo', settings:'Settings',
+                  theme:'Theme', lang:'Language', light:'Light', dark:'Dark',
+                  wallet:'DUCO wallet', version:'Version', emptyChat:'Type a message', chatHint:'Each message costs 1 P-Coin',
+                  messagePlaceholder:'Message...', topUp:'+ Deposit', historyTitle:'Transaction history',
+                  noHistory:'Nothing yet', depositTitle:'Top up balance', transfer:'DUCO Transfer',
+                  mining:'Mine to bot wallet', howMuch:'How many P-Coin?', example:'e.g. 10',
+                  back:'Back', next:'Next', username:'Your Duino-Coin username', createReq:'Create request',
+                  minerSetup:'Setup miner', reqCreated:'Request created', sendExact:'Send exactly',
+                  autoCheck:'Bot will verify automatically', promoTitle:'Activate promo code', promoHint:'#code',
+                  promoActivated:'Promo activated!', promoUsed:'Already used this code',
+                  promoNotFound:'Promo not found', settingsTitle:'Settings', notLinked:'Not linked',
+                  registration:'Registration', balanceLabel:'P-Coin balance', spentLabel:'Total spent',
+                  file:'File', photo:'Photo', video:'Video', sendFile:'Send file', cancel:'Cancel',
+                  chats:'Chats', newChat:'New chat', deleteChat:'Delete', chatDate:'Date', confirmDelete:'Delete chat?',
+                  profileTitle:'Profile', settingsBtn:'Settings', noUsername:'No name',
+                  sending:'Sending...', networkError:'Network error', insufficientBalance:'Insufficient P-Coin',
+                  typeDeposit:'Deposit', typeExchange:'Exchange', typeSpend:'Spend', typeRefund:'Refund',
+                  fileSent:'File sent', unsupportedType:'Unsupported file type',
+            }
+        };
+        const LangCtx = createContext();
+        function useLang(){ return useContext(LangCtx); }
+        function t(key){ const lang=useLang(); return UI[lang]?.[key]||UI.en[key]||key; }
+
+        /* ─── API ─── */
+        const API = window.location.origin;
+        async function api(path, method='GET', body=null){
+            const h = { 'Content-Type':'application/json', 'X-Telegram-Init-Data': tg?.initData||'' };
+            const opts = { method, headers:h };
+            if(body) opts.body=JSON.stringify(body);
+            const r = await fetch(API+path, opts);
+            if(!r.ok){ const e=await r.json().catch(()=>({error:'Network error'})); throw new Error(e.error||'HTTP '+r.status); }
+            return r.json();
+        }
+
+        /* ─── Icons (SVG) ─── */
+        const I = {
+            chat: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+            user: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            wallet: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 10H2"/></svg>,
+            clock: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+            gift: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5"/></svg>,
+            gear: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+            send: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+            back: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+            copy: (s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+            plus: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            trash: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
+            paperclip: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>,
+            image: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+            video: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>,
+            file: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
+            sun: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+            moon: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+            globe: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
+            x: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            check: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            menu: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+            messageSquare: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+        };
+
+        /* ─── Toast ─── */
+        function Toast({ message, type, onClose }) {
+            useEffect(()=>{ const t=setTimeout(onClose,2500); return ()=>clearTimeout(t); },[]);
+            const bg = type==='error'?'var(--ptb-error)':type==='success'?'var(--ptb-success)':'var(--ptb-primary)';
+            return <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 text-white px-4 py-3 rounded-xl text-center text-sm font-medium fade-in" style={{backgroundColor:bg,boxShadow:'0 4px 20px rgba(0,0,0,0.2)'}}>{message}</div>;
+        }
+
+        /* ─── Chat History (localStorage) ─── */
+        const CHATS_KEY = 'ptb-chats';
+        function loadChats(){ try{ return JSON.parse(localStorage.getItem(CHATS_KEY))||[]; }catch{return[];} }
+        function saveChats(chats){ localStorage.setItem(CHATS_KEY, JSON.stringify(chats)); }
+        function makeChat(){ return { id: Date.now().toString(), title:'Новый чат', messages:[], createdAt: new Date().toISOString() }; }
+
+        /* ─── Chat Page ─── */
+        function ChatPage({ onNavigate }) {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const [chats, setChats] = useState(()=> loadChats());
+            const [activeChat, setActiveChat] = useState(null);
+            const [input, setInput] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [balance, setBalance] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [showSidebar, setShowSidebar] = useState(false);
+            const [attachMenu, setAttachMenu] = useState(false);
+            const chatRef = useRef(null);
+            const fileRef = useRef(null);
+            const videoRef = useRef(null);
+            const imageRef = useRef(null);
+
+            useEffect(()=>{ api('/api/profile').then(d=>{setBalance(d.balance);setProfile(d);}).catch(()=>{}); },[]);
+
+            const messages = useMemo(()=> chats.find(c=>c.id===activeChat)?.messages||[], [chats, activeChat]);
+
+            useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [messages, loading]);
+
+            const updateMessages = (msgs) => {
+                setChats(prev => prev.map(c => c.id===activeChat ? {...c, messages:msgs, title: msgs.find(m=>m.role==='user')?.text?.slice(0,40)||c.title} : c));
+            };
+
+            const newChat = () => {
+                const c = makeChat();
+                setChats(prev=>[c,...prev]);
+                setActiveChat(c.id);
+                setShowSidebar(false);
+            };
+
+            const deleteChat = (id) => {
+                setChats(prev=>prev.filter(c=>c.id!==id));
+                if(activeChat===id) setActiveChat(chats.find(c=>c.id!==id)?.id||null);
+            };
+
+            const send = async (fileInfo) => {
+                const text = input.trim();
+                if((!text && !fileInfo) || loading) return;
+                if(!activeChat){ newChat(); return; }
+                const userMsg = { role:'user', text: fileInfo ? `[${fileInfo.type}] ${fileInfo.name}` : text, file: fileInfo||null };
+                const newMsgs = [...messages, userMsg];
+                updateMessages(newMsgs);
+                setInput('');
+                setAttachMenu(false);
+                setLoading(true);
+                try {
+                    const res = await api('/api/chat', 'POST', { text: fileInfo ? `${fileInfo.type}: ${fileInfo.name}` : text });
+                    updateMessages([...newMsgs, { role:'ai', text: res.reply }]);
+                    setBalance(res.balance);
+                } catch(e) {
+                    updateMessages([...newMsgs, { role:'error', text: e.message }]);
+                }
+                setLoading(false);
+            };
+
+            const handleFile = (type, ref) => {
+                ref.current.click();
+            };
+
+            const onFileChange = (e, type) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                send({ type, name: file.name, size: file.size });
+                e.target.value = '';
+            };
+
+            /* Sidebar: list of chats */
+            const Sidebar = () => (
+                <div className="fixed inset-0 z-40 flex" style={{display:showSidebar?'flex':'none'}}>
+                    <div className="absolute inset-0" style={{backgroundColor:'var(--ptb-overlay)'}} onClick={()=>setShowSidebar(false)}/>
+                    <div className="relative w-72 h-full flex flex-col slide-up" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)', borderRight:'1px solid var(--ptb-border)'}}>
+                        <div className="flex items-center justify-between px-4 py-3 border-b" style={{borderColor:'var(--ptb-border)'}}>
+                            <span className="font-semibold text-sm">{u.chats}</span>
+                            <button onClick={()=>setShowSidebar(false)} className="p-1 rounded-lg" style={{color:'var(--tg-theme-hint-color,#999)'}}><I.x /></button>
+                        </div>
+                        <button onClick={newChat} className="flex items-center gap-2 mx-3 mt-3 px-3 py-2.5 rounded-xl text-sm font-medium" style={{backgroundColor:'var(--ptb-primary)', color:'#fff'}}>
+                            <I.plus /> {u.newChat}
+                        </button>
+                        <div className="flex-1 overflow-y-auto py-2 px-2">
+                            {chats.length===0 && <p className="text-center text-xs mt-8" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.noHistory}</p>}
+                            {chats.map(c=>(
+                                <div key={c.id} onClick={()=>{setActiveChat(c.id);setShowSidebar(false);}}
+                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer mb-1 text-sm transition-colors ${activeChat===c.id?'':'hover:opacity-80'}`}
+                                    style={activeChat===c.id?{backgroundColor:'var(--ptb-card)'}:{}}>
+                                    <I.messageSquare s={16} />
+                                    <span className="flex-1 truncate">{c.title}</span>
+                                    <button onClick={e=>{e.stopPropagation();if(confirm(u.confirmDelete))deleteChat(c.id);}}
+                                        className="p-1 rounded-lg opacity-50 hover:opacity-100" style={{color:'var(--tg-theme-hint-color,#999)'}}><I.trash s={14}/></button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col h-screen">
+                    <Sidebar />
+                    {/* Header */}
+                    <header className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
+                        <button onClick={()=>setShowSidebar(true)} className="p-1.5 rounded-lg transition-colors" style={{color:'var(--tg-theme-hint-color,#71717a)'}}><I.menu /></button>
+                        <h1 className="font-bold text-base flex-1">Point AI</h1>
+                        <span className="text-xs font-medium px-2 py-1 rounded-lg" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-hint-color,#71717a)'}}>
+                            {balance!==null ? balance.toFixed(2)+' PC' : '...'}
+                        </span>
+                        <button onClick={()=>onNavigate('deposit')} className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                            {u.topUp}
+                        </button>
+                        {profile && <button onClick={()=>onNavigate('profile')} className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-hint-color,#71717a)'}}>
+                            {profile.username ? profile.username[0].toUpperCase() : tg?.initDataUnsafe?.user?.first_name?.[0]?.toUpperCase() || 'U'}
+                        </button>}
+                    </header>
+
+                    {/* Messages */}
+                    <div ref={chatRef} className="flex-1 overflow-y-auto chat-scroll px-3 md:px-4 py-4 space-y-3">
+                        {messages.length===0 && (
+                            <div className="text-center mt-16 md:mt-24 fade-in" style={{color:'var(--tg-theme-hint-color,#999)'}}>
+                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-card)'}}>
+                                    <I.chat s={28} />
+                                </div>
+                                <p className="font-medium text-sm">{u.emptyChat}</p>
+                                <p className="text-xs mt-1 opacity-60">{u.chatHint}</p>
+                            </div>
+                        )}
+                        {messages.map((m,i)=>(
+                            <div key={i} className={`fade-in flex ${m.role==='user'?'justify-end':'justify-start'}`}>
+                                <div className={`max-w-[80%] md:max-w-[70%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${m.role==='user'?'rounded-br-sm':'rounded-bl-sm'}`}
+                                    style={{
+                                        backgroundColor: m.role==='user'?'var(--ptb-chat-user)':m.role==='error'?'var(--ptb-error-bg)':'var(--ptb-chat-ai)',
+                                        color: m.role==='user'?'var(--ptb-chat-user-text)':m.role==='error'?'var(--ptb-error)':'var(--ptb-chat-ai-text)',
+                                    }}>
+                                    {m.file && <div className="flex items-center gap-1.5 mb-1 opacity-75 text-xs"><I.paperclip s={12}/> {m.file.name}</div>}
+                                    {m.text}
+                                </div>
+                            </div>
+                        ))}
+                        {loading && (
+                            <div className="flex justify-start fade-in">
+                                <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{backgroundColor:'var(--ptb-chat-ai)'}}>
+                                    <div className="typing-dots flex gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Input bar */}
+                    <div className="border-t shrink-0" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
+                        <div className="flex items-end gap-1.5 px-2 md:px-3 py-2">
+                            <input ref={imageRef} type="file" accept="image/*" onChange={e=>onFileChange(e,'photo')}/>
+                            <input ref={videoRef} type="file" accept="video/*" onChange={e=>onFileChange(e,'video')}/>
+                            <input ref={fileRef} type="file" onChange={e=>onFileChange(e,'file')}/>
+                            <div className="relative">
+                                <button onClick={()=>setAttachMenu(!attachMenu)} className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors" style={{color:'var(--tg-theme-hint-color,#71717a)'}}>
+                                    <I.paperclip />
+                                </button>
+                                {attachMenu && (
+                                    <div className="absolute bottom-11 left-0 rounded-xl p-1.5 fade-in" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)',boxShadow:'var(--ptb-shadow,0 4px 20px rgba(0,0,0,0.15))',border:'1px solid var(--ptb-border)'}}>
+                                        <button onClick={()=>handleFile('photo',imageRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
+                                            <I.image s={16}/> {u.photo}
+                                        </button>
+                                        <button onClick={()=>handleFile('video',videoRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
+                                            <I.video s={16}/> {u.video}
+                                        </button>
+                                        <button onClick={()=>handleFile('file',fileRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
+                                            <I.file s={16}/> {u.file}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()}
+                                placeholder={u.messagePlaceholder}
+                                className="flex-1 px-3.5 py-2 rounded-xl text-sm outline-none min-h-[36px] max-h-24 resize-none"
+                                style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}}
+                                disabled={loading} rows={1}/>
+                            <button onClick={()=>send()} disabled={(!input.trim()&&!loading)}
+                                className="w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-30"
+                                style={{backgroundColor:input.trim()?'var(--ptb-primary)':'var(--ptb-card)',color:input.trim()?'#fff':'var(--tg-theme-hint-color,#aaa)'}}>
+                                <I.send s={16}/>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ─── Profile Page ─── */
+        function ProfilePage({ onNavigate }) {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const [profile, setProfile] = useState(null);
+            useEffect(()=>{ api('/api/profile').then(setProfile).catch(()=>{}); },[]);
+            if(!profile) return <div className="flex items-center justify-center h-64" style={{color:'var(--tg-theme-hint-color,#999)'}}>...</div>;
+            return (
+                <div className="p-4 max-w-lg mx-auto space-y-4 fade-in">
+                    <div className="rounded-2xl p-6 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-xl font-bold" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                            {(profile.username||tg?.initDataUnsafe?.user?.first_name||'U')[0].toUpperCase()}
+                        </div>
+                        <h2 className="font-bold text-lg">{profile.username||u.noUsername}</h2>
+                        <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>ID: {profile.telegram_id}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl p-4 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
+                            <p className="text-2xl font-bold" style={{color:'var(--ptb-primary)'}}>{profile.balance.toFixed(3)}</p>
+                            <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.balanceLabel}</p>
+                        </div>
+                        <div className="rounded-xl p-4 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
+                            <p className="text-2xl font-bold" style={{color:'var(--ptb-success)'}}>{profile.total_spent.toFixed(3)}</p>
+                            <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.spentLabel}</p>
+                        </div>
+                    </div>
+                    <div className="rounded-xl p-4 space-y-2.5 text-sm" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <div className="flex justify-between"><span style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.wallet}</span><span className="font-medium">{profile.duco_wallet||u.notLinked}</span></div>
+                        <div className="flex justify-between"><span style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.registration}</span><span className="font-medium">{profile.created_at}</span></div>
+                    </div>
+                    <button onClick={()=>onNavigate('settings')} className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-text-color,#18181b)'}}>
+                        <I.gear s={16}/> {u.settingsBtn}
+                    </button>
+                </div>
+            );
+        }
+
+        /* ─── History Page ─── */
+        function HistoryPage() {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const labels = { deposit:u.typeDeposit, exchange:u.typeExchange, spend:u.typeSpend, refund:u.typeRefund };
+            const [history, setHistory] = useState([]);
+            useEffect(()=>{ api('/api/history').then(d=>setHistory(d.history)).catch(()=>{}); },[]);
+            return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <h2 className="font-bold text-base mb-4">{u.historyTitle}</h2>
+                    {history.length===0 ? (
+                        <p className="text-center mt-12 text-sm" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.noHistory}</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {history.map((tx,i)=>(
+                                <div key={i} className="rounded-xl p-3.5 flex items-center justify-between" style={{backgroundColor:'var(--ptb-card)'}}>
+                                    <div>
+                                        <p className="text-sm font-medium">{labels[tx.transaction_type]||tx.transaction_type}</p>
+                                        <p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>{tx.created_at}</p>
+                                    </div>
+                                    <span className="font-bold text-sm" style={{color:tx.amount>=0?'var(--ptb-success)':'var(--ptb-error)'}}>
+                                        {tx.amount>=0?'+':''}{tx.amount.toFixed(3)} PC
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        /* ─── Deposit Page ─── */
+        function DepositPage() {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const [step, setStep] = useState('method');
+            const [amount, setAmount] = useState('');
+            const [username, setUsername] = useState('');
+            const [depositInfo, setDepositInfo] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const createDeposit = async (ducoUser, exact) => {
+                setLoading(true);
+                try { const r=await api('/api/deposit','POST',{amount:parseFloat(amount),duco_username:ducoUser,exact}); setDepositInfo(r); setStep('instructions'); }
+                catch(e){ alert(e.message); }
+                setLoading(false);
+            };
+
+            const handleAmount = async () => {
+                const a=parseFloat(amount);
+                if(isNaN(a)||a<=0) return;
+                setLoading(true);
+                try { const p=await api('/api/profile'); p.duco_wallet ? await createDeposit(p.duco_wallet,true) : setStep('username'); }
+                catch(e){ alert(e.message); }
+                setLoading(false);
+            };
+
+            const Card = ({children, onClick, active}) => (
+                <button onClick={onClick} className="w-full p-4 rounded-xl text-left transition-all" style={{backgroundColor:'var(--ptb-card)', border: active?'2px solid var(--ptb-primary)':'2px solid transparent'}}>
+                    {children}
+                </button>
+            );
+
+            if(step==='method') return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <h2 className="font-bold text-base mb-4">{u.depositTitle}</h2>
+                    <div className="space-y-3">
+                        <Card onClick={()=>{setStep('amount');}}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}><I.wallet s={20}/></div>
+                                <div><p className="font-medium text-sm">{u.transfer}</p><p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>DUCO -&gt; P-Coin</p></div>
+                            </div>
+                        </Card>
+                        <Card onClick={()=>setStep('mining')}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-cardHover)',color:'var(--tg-theme-text-color,#18181b)'}}><I.gear s={20}/></div>
+                                <div><p className="font-medium text-sm">{u.mining}</p><p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>Proportional to shares</p></div>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+
+            if(step==='amount') return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <button onClick={()=>setStep('method')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
+                    <h2 className="font-bold text-base mb-3">{u.howMuch}</h2>
+                    <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder={u.example}
+                        className="w-full px-4 py-3 rounded-xl text-lg outline-none mb-4" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}} autoFocus/>
+                    <button onClick={handleAmount} disabled={loading||!amount} className="w-full py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                        {loading?'...':u.next}
+                    </button>
+                </div>
+            );
+
+            if(step==='username') return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <button onClick={()=>setStep('amount')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
+                    <h2 className="font-bold text-base mb-3">{u.username}</h2>
+                    <input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Username"
+                        className="w-full px-4 py-3 rounded-xl outline-none mb-4" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}} autoFocus/>
+                    <button onClick={()=>createDeposit(username,false)} disabled={loading||!username} className="w-full py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                        {loading?'...':u.createReq}
+                    </button>
+                </div>
+            );
+
+            if(step==='mining') return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <button onClick={()=>setStep('method')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
+                    <h2 className="font-bold text-base mb-3">{u.minerSetup}</h2>
+                    <div className="rounded-xl p-4 text-sm space-y-2" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <p className="font-medium">Username: <code className="px-1.5 py-0.5 rounded" style={{backgroundColor:'var(--ptb-cardHover)'}}>Point</code></p>
+                        <p className="font-medium">Identifier: <code className="px-1.5 py-0.5 rounded" style={{backgroundColor:'var(--ptb-cardHover)'}}>tg{tg?.initDataUnsafe?.user?.id||'...'}</code></p>
+                    </div>
+                </div>
+            );
+
+            if(step==='instructions'&&depositInfo) return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <button onClick={()=>{setStep('method');setDepositInfo(null);}} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
+                    <div className="rounded-xl p-4 text-sm space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <p className="font-bold">{u.reqCreated}</p>
+                        <p>{u.sendExact} <b style={{color:'var(--ptb-primary)'}}>{depositInfo.verification_amount} DUCO</b> {u.transfer.toLowerCase()}:</p>
+                        <div className="flex items-center gap-2 rounded-lg p-2" style={{backgroundColor:'var(--ptb-cardHover)'}}>
+                            <code className="flex-1 text-sm font-medium">Point</code>
+                            <button onClick={()=>navigator.clipboard.writeText('Point')} className="p-1 rounded" style={{color:'var(--ptb-primary)'}}><I.copy /></button>
+                        </div>
+                        <p className="text-xs" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.autoCheck}</p>
+                    </div>
+                </div>
+            );
+            return null;
+        }
+
+        /* ─── Promo Page ─── */
+        function PromoPage() {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const [code, setCode] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const redeem = async () => {
+                const w=code.replace(/^#/,'').trim();
+                if(!w) return;
+                setLoading(true);
+                try { const r=await api('/api/promo','POST',{word:w}); setResult(r); }
+                catch(e){ setResult({error:e.message}); }
+                setLoading(false);
+            };
+            return (
+                <div className="p-4 max-w-lg mx-auto fade-in">
+                    <h2 className="font-bold text-base mb-4">{u.promoTitle}</h2>
+                    <div className="flex gap-2 mb-4">
+                        <input value={code} onChange={e=>setCode(e.target.value)} placeholder={u.promoHint}
+                            className="flex-1 px-4 py-3 rounded-xl outline-none text-sm" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}}/>
+                        <button onClick={redeem} disabled={loading||!code.trim()} className="px-5 py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                            {loading?'...':'OK'}
+                        </button>
+                    </div>
+                    {result&&!result.error && (
+                        <div className="rounded-xl p-4 text-sm fade-in" style={{backgroundColor:'var(--ptb-success-bg)',color:'var(--ptb-success)'}}>
+                            <p className="font-bold">{u.promoActivated}</p>
+                            <p>+{result.amount.toFixed(3)} P-Coin | Balance: {result.new_balance.toFixed(3)}</p>
+                        </div>
+                    )}
+                    {result?.error && (
+                        <div className="rounded-xl p-4 text-sm fade-in" style={{backgroundColor:'var(--ptb-error-bg)',color:'var(--ptb-error)'}}>{result.error}</div>
+                    )}
+                </div>
+            );
+        }
+
+        /* ─── Settings Page ─── */
+        function SettingsPage() {
+            const { lang, setLang } = useLang();
+            const u = UI[lang];
+            const [theme, setTheme] = useState(getTheme());
+            const [profile, setProfile] = useState(null);
+            useEffect(()=>{ api('/api/profile').then(setProfile).catch(()=>{}); },[]);
+
+            const toggleTheme = (name) => { setTheme(name); applyTheme(name); };
+            const changeLang = async (l) => { setLang(l); try{await api('/api/settings/language','POST',{language:l});}catch{} };
+
+            return (
+                <div className="p-4 max-w-lg mx-auto space-y-4 fade-in">
+                    <h2 className="font-bold text-base">{u.settingsTitle}</h2>
+
+                    {/* Theme */}
+                    <div className="rounded-xl p-4 space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <div className="flex items-center gap-2 text-sm font-medium"><I.sun s={16}/> {u.theme}</div>
+                        <div className="flex gap-2">
+                            {[{id:'light',icon:<I.sun s={16}/>,label:u.light},{id:'dark',icon:<I.moon s={16}/>,label:u.dark}].map(t=>(
+                                <button key={t.id} onClick={()=>toggleTheme(t.id)}
+                                    className="flex-1 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all"
+                                    style={{
+                                        backgroundColor: theme===t.id?'var(--tg-theme-bg-color,#fff)':'var(--ptb-cardHover)',
+                                        border: theme===t.id?'2px solid var(--ptb-primary)':'2px solid transparent',
+                                        color: 'var(--tg-theme-text-color,#18181b)',
+                                        boxShadow: theme===t.id?'0 2px 8px rgba(0,0,0,0.08)':'none'
+                                    }}>
+                                    {t.icon} {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Language */}
+                    <div className="rounded-xl p-4 space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <div className="flex items-center gap-2 text-sm font-medium"><I.globe s={16}/> {u.lang}</div>
+                        <div className="flex gap-2">
+                            {[{id:'ru',label:'Русский'},{id:'en',label:'English'}].map(l=>(
+                                <button key={l.id} onClick={()=>changeLang(l.id)}
+                                    className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
+                                    style={{
+                                        backgroundColor: lang===l.id?'var(--tg-theme-bg-color,#fff)':'var(--ptb-cardHover)',
+                                        border: lang===l.id?'2px solid var(--ptb-primary)':'2px solid transparent',
+                                        color: 'var(--tg-theme-text-color,#18181b)',
+                                        boxShadow: lang===l.id?'0 2px 8px rgba(0,0,0,0.08)':'none'
+                                    }}>
+                                    {l.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Wallet */}
+                    <div className="rounded-xl p-4" style={{backgroundColor:'var(--ptb-card)'}}>
+                        <div className="flex items-center gap-2 text-sm font-medium mb-2"><I.wallet s={16}/> {u.wallet}</div>
+                        <p className="text-sm" style={{color:'var(--tg-theme-hint-color,#999)'}}>{profile?.duco_wallet||u.notLinked}</p>
+                    </div>
+
+                    <p className="text-center text-xs pt-2" style={{color:'var(--tg-theme-hint-color,#aaa)'}}>Point AI v0.0.2b</p>
+                </div>
+            );
+        }
+
+        /* ─── Bottom Nav ─── */
+        function BottomNav({ page, onNavigate }) {
+            const { lang } = useLang();
+            const u = UI[lang];
+            const tabs = [
+                {id:'chat',label:u.chat,Icon:I.chat},
+                {id:'profile',label:u.profile,Icon:I.user},
+                {id:'deposit',label:u.deposit,Icon:I.wallet},
+                {id:'history',label:u.history,Icon:I.clock},
+                {id:'settings',label:u.settings,Icon:I.gear},
+            ];
+            return (
+                <nav className="flex items-center justify-around border-t shrink-0 py-1.5 safe-bottom" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
+                    {tabs.map(({id,label,Icon})=>(
+                        <button key={id} onClick={()=>onNavigate(id)}
+                            className="flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
+                            style={{color: page===id?'var(--ptb-primary)':'var(--tg-theme-hint-color,#71717a)'}}>
+                            <Icon s={20}/><span className="text-[10px]">{label}</span>
+                        </button>
+                    ))}
+                </nav>
+            );
+        }
+
+        /* ─── App ─── */
+        function App() {
+            const [page, setPage] = useState('chat');
+            const [lang, setLangState] = useState(()=> localStorage.getItem('ptb-lang')||'ru');
+
+            const setLang = (l) => { setLangState(l); localStorage.setItem('ptb-lang',l); };
+            const pages = {
+                chat:<ChatPage onNavigate={setPage}/>, profile:<ProfilePage onNavigate={setPage}/>,
+                deposit:<DepositPage/>, history:<HistoryPage/>, promo:<PromoPage/>, settings:<SettingsPage/>,
+            };
+
+            return (
+                <LangCtx.Provider value={{lang,setLang}}>
+                    <div className="app-shell flex flex-col h-screen" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
+                        <div className="flex-1 overflow-y-auto">{pages[page]}</div>
+                        <BottomNav page={page} onNavigate={setPage}/>
+                    </div>
+                </LangCtx.Provider>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
