@@ -76,7 +76,12 @@
     <script type="text/babel">
         const{useState,useEffect,useRef,useCallback,useMemo,createContext,useContext}=React;
         const tg=window.Telegram?.WebApp;
-        if(tg){tg.ready();tg.expand()}
+        if(tg){try{tg.ready();tg.expand()}catch(e){}}
+
+        /* ── Debug mode (вне Telegram) ── */
+        const DEBUG_USER_ID = new URLSearchParams(window.location.search).get('debug_user');
+        const IS_DEBUG = !!DEBUG_USER_ID;
+        const IS_TELEGRAM = !!tg?.initData;
 
         /* ── Theme ── */
         function applyTheme(dark){
@@ -122,14 +127,23 @@
         const useLang=()=>useContext(LangCtx);
 
         /* ── API ── */
+        // Укажите URL API бота здесь или через window.__PTB_API__
+        // Пример: const API_BASE = 'https://your-ngrok-url.ngrok-free.app';
+        const API_BASE = window.__PTB_API__ || localStorage.getItem('ptb-api-url') || '';
         async function api(path,method='GET',body=null){
-            const h={'Content-Type':'application/json','X-Telegram-Init-Data':tg?.initData||''};
+            if(!API_BASE) throw new Error('API URL не настроен. Откройте ?api=URL');
+            const h={'Content-Type':'application/json'};
+            if(IS_TELEGRAM) h['X-Telegram-Init-Data']=tg.initData;
+            if(IS_DEBUG) h['X-Debug-User-Id']=DEBUG_USER_ID;
             const opts={method,headers:h};
             if(body)opts.body=JSON.stringify(body);
-            const r=await fetch(window.location.origin+path,opts);
+            const r=await fetch(API_BASE+path,opts);
             if(!r.ok){const e=await r.json().catch(()=>({error:'Error'}));throw new Error(e.error||'HTTP '+r.status)}
             return r.json();
         }
+        // Поддержка ?api=URL для быстрой настройки
+        const apiFromUrl = new URLSearchParams(window.location.search).get('api');
+        if(apiFromUrl){ localStorage.setItem('ptb-api-url',apiFromUrl); window.location.href=window.location.pathname; }
 
         /* ── Icons ── */
         const I=(d,s=22,p={})=>React.createElement('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round',...p},d);
@@ -244,6 +258,7 @@
                         <button onClick={()=>setSidebar(true)} className="btn-press w-9 h-9 flex items-center justify-center rounded-xl" style={{color:'var(--fg2)'}}>{icons.menu}</button>
                         <div className="flex-1 min-w-0">
                             <h1 className="font-extrabold text-base truncate" style={{color:'var(--fg)'}}>Point AI</h1>
+                            {IS_DEBUG&&<span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{background:'var(--error-bg)',color:'var(--error)'}}>DEBUG #{DEBUG_USER_ID}</span>}
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{background:'var(--accent-light)',color:'var(--accent)'}}>
@@ -557,6 +572,9 @@
                     </div>
 
                     <p className="text-center text-xs font-medium pt-1" style={{color:'var(--fg3)'}}>Point AI v0.0.2b</p>
+                    <button onClick={()=>{localStorage.removeItem('ptb-api-url');window.location.reload()}} className="btn-press w-full py-3 rounded-2xl text-xs font-semibold" style={{background:'var(--error-bg)',color:'var(--error)'}}>
+                        Сбросить API URL
+                    </button>
                 </div>
             );
         }
@@ -584,11 +602,57 @@
             );
         }
 
+        /* ── Setup Screen ── */
+        function SetupScreen(){
+            const{lang}=useLang();const u=UI[lang];
+            const[url,setUrl]=useState(localStorage.getItem('ptb-api-url')||'');
+            const[saving,setSaving]=useState(false);
+            const[error,setError]=useState('');
+            const save=async()=>{
+                if(!url.trim())return;
+                setSaving(true);setError('');
+                try{
+                    const r=await fetch(url.trim()+'/api/profile',{headers:{'X-Debug-User-Id':'1'}});
+                    if(!r.ok)throw new Error('API '+r.status);
+                    localStorage.setItem('ptb-api-url',url.trim());
+                    window.location.reload();
+                }catch(e){setError((lang==='ru'?'Не удалось подключиться: ':'Connection failed: ')+e.message);setSaving(false)}
+            };
+            return(
+                <div className="flex flex-col items-center justify-center min-h-screen p-6" style={{background:'var(--bg)'}}>
+                    <div className="w-full max-w-sm space-y-6 fade-in">
+                        <div className="text-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)',boxShadow:'0 4px 12px rgba(59,130,246,0.3)'}}>
+                                <span style={{color:'#fff'}}>{React.cloneElement(icons.chat,{width:30,height:30})}</span>
+                            </div>
+                            <h1 className="font-extrabold text-xl" style={{color:'var(--fg)'}}>Point AI</h1>
+                            <p className="text-sm mt-1" style={{color:'var(--fg3)'}}>{lang==='ru'?'Подключите API сервер бота':'Connect bot API server'}</p>
+                        </div>
+                        <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                            <label className="text-xs font-semibold" style={{color:'var(--fg2)'}}>{lang==='ru'?'URL API бота':'Bot API URL'}</label>
+                            <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://your-ngrok-url.ngrok-free.app"
+                                className="w-full px-4 py-3 rounded-xl text-sm outline-none" style={{background:'var(--bg3)',color:'var(--fg)'}}/>
+                            {error&&<p className="text-xs font-medium" style={{color:'var(--error)'}}>{error}</p>}
+                            <button onClick={save} disabled={saving||!url.trim()} className="btn-press w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)'}}>
+                                {saving?(lang==='ru'?'Проверка...':'Checking...'):(lang==='ru'?'Подключить':'Connect')}
+                            </button>
+                        </div>
+                        <p className="text-xs text-center" style={{color:'var(--fg3)'}}>
+                            {lang==='ru'?'Бот должен быть запущен с доступным API. Используйте ngrok или VPS.':'Bot must be running with accessible API. Use ngrok or VPS.'}
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         /* ── App ── */
         function App(){
             const[page,setPage]=useState('chat');
             const[lang,setLangS]=useState(()=>localStorage.getItem('ptb-lang')||'ru');
             const setLang=l=>{setLangS(l);localStorage.setItem('ptb-lang',l)};
+
+            if(!API_BASE) return <LangCtx.Provider value={{lang,setLang}}><SetupScreen/></LangCtx.Provider>;
+
             const pages={chat:<ChatPage onNav={setPage}/>,profile:<ProfilePage onNav={setPage}/>,deposit:<DepositPage/>,history:<HistoryPage/>,settings:<SettingsPage/>};
             return(
                 <LangCtx.Provider value={{lang,setLang}}>
