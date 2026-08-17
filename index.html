@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Point AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -13,374 +15,311 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        tg: {
-                            bg: 'var(--tg-theme-bg-color, #ffffff)',
-                            text: 'var(--tg-theme-text-color, #000000)',
-                            hint: 'var(--tg-theme-hint-color, #999999)',
-                            link: 'var(--tg-theme-link-color, #2481cc)',
-                            button: 'var(--tg-theme-button-color, #2481cc)',
-                            'button-text': 'var(--tg-theme-button-text-color, #ffffff)',
-                            secondary: 'var(--tg-theme-secondary-bg-color, #f1f1f1)',
-                        }
-                    },
-                    screens: { 'xs': '375px' }
+                    fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; }
-        .chat-scroll { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .chat-scroll::-webkit-scrollbar { width: 3px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: var(--ptb-border); border-radius: 2px; }
-        .fade-in { animation: fadeIn 0.25s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .typing-dots span { animation: blink 1.4s infinite both; }
-        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes blink { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
-        @keyframes slideUp { from{opacity:0;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
-        .slide-up { animation: slideUp 0.3s ease-out; }
-        :root {
-            --ptb-card: #f4f4f5;
-            --ptb-card-hover: #e4e4e7;
-            --ptb-border: #e4e4e7;
-            --ptb-input: #f4f4f5;
-            --ptb-chat-user: #3b82f6;
-            --ptb-chat-user-text: #ffffff;
-            --ptb-chat-ai: #f4f4f5;
-            --ptb-chat-ai-text: #18181b;
-            --ptb-success: #22c55e;
-            --ptb-error: #ef4444;
-            --ptb-success-bg: #f0fdf4;
-            --ptb-error-bg: #fef2f2;
-            --ptb-primary: #3b82f6;
-            --ptb-overlay: rgba(0,0,0,0.4);
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+        :root{
+            --bg:#ffffff;--bg2:#f8f9fa;--bg3:#f0f1f3;
+            --fg:#1a1a2e;--fg2:#6b7280;--fg3:#9ca3af;
+            --accent:#3b82f6;--accent2:#2563eb;--accent-light:#eff6ff;
+            --success:#22c55e;--success-bg:#f0fdf4;--error:#ef4444;--error-bg:#fef2f2;
+            --card:#ffffff;--card-border:#e5e7eb;
+            --chat-me:#3b82f6;--chat-me-fg:#ffffff;
+            --chat-ai:#f0f1f3;--chat-ai-fg:#1a1a2e;
+            --nav-bg:#ffffff;--nav-border:#e5e7eb;
+            --header-bg:#ffffff;
+            --shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+            --shadow-lg:0 4px 12px rgba(0,0,0,0.08);
+            --overlay:rgba(0,0,0,0.35);
+            --radius:14px;
         }
-        @media(min-width:768px) {
-            .app-shell { max-width:480px; margin:0 auto; border-left:1px solid var(--ptb-border); border-right:1px solid var(--ptb-border); }
+        .dark{
+            --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;
+            --fg:#e6edf3;--fg2:#8b949e;--fg3:#6e7681;
+            --accent:#58a6ff;--accent2:#79c0ff;--accent-light:#1c2d44;
+            --success:#3fb950;--success-bg:#0d2818;--error:#f85149;--error-bg:#3d1014;
+            --card:#161b22;--card-border:#30363d;
+            --chat-me:#1f6feb;--chat-me-fg:#ffffff;
+            --chat-ai:#161b22;--chat-ai-fg:#e6edf3;
+            --nav-bg:#0d1117;--nav-border:#21262d;
+            --header-bg:#0d1117;
+            --shadow:0 1px 3px rgba(0,0,0,0.3);
+            --shadow-lg:0 4px 12px rgba(0,0,0,0.4);
+            --overlay:rgba(0,0,0,0.6);
         }
-        input[type="file"] { display:none; }
+        .app-shell{max-width:480px;margin:0 auto;position:relative;overflow:hidden}
+        @media(min-width:768px){
+            .app-shell{border-left:1px solid var(--card-border);border-right:1px solid var(--card-border);height:100vh}
+        }
+        .chat-scroll{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+        .chat-scroll::-webkit-scrollbar{width:0}
+        .fade-in{animation:fadeIn .2s ease-out}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+        .slide-up{animation:slideUp .25s cubic-bezier(.16,1,.3,1)}
+        @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+        .typing-dot{animation:blink 1.2s infinite both}
+        .typing-dot:nth-child(2){animation-delay:.15s}
+        .typing-dot:nth-child(3){animation-delay:.3s}
+        @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+        input[type="file"]{display:none}
+        .safe-bottom{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+        .btn-press:active{transform:scale(0.97)}
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
+        const{useState,useEffect,useRef,useCallback,useMemo,createContext,useContext}=React;
+        const tg=window.Telegram?.WebApp;
+        if(tg){tg.ready();tg.expand()}
 
-        const tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); }
-
-        /* ─── Theme ─── */
-        const THEMES = {
-            light: {
-                tg: { bg:'#ffffff', text:'#18181b', hint:'#71717a', link:'#3b82f6', button:'#3b82f6', 'button-text':'#ffffff', secondary:'#f4f4f5' },
-                card:'#f4f4f5', cardHover:'#e4e4e7', border:'#e4e4e7', input:'#f4f4f5',
-                chatUser:'#3b82f6', chatUserText:'#ffffff', chatAi:'#f4f4f5', chatAiText:'#18181b',
-                success:'#22c55e', error:'#ef4444', successBg:'#f0fdf4', errorBg:'#fef2f2',
-                overlay:'rgba(0,0,0,0.4)', shadow:'0 2px 12px rgba(0,0,0,0.08)',
-            },
-            dark: {
-                tg: { bg:'#0f0f1a', text:'#e4e4e7', hint:'#71717a', link:'#60a5fa', button:'#3b82f6', 'button-text':'#ffffff', secondary:'#1a1a2e' },
-                card:'#1a1a2e', cardHover:'#242444', border:'#2a2a4a', input:'#1a1a2e',
-                chatUser:'#3b82f6', chatUserText:'#ffffff', chatAi:'#1a1a2e', chatAiText:'#e4e4e7',
-                success:'#4ade80', error:'#f87171', successBg:'#052e16', errorBg:'#450a0a',
-                overlay:'rgba(0,0,0,0.6)', shadow:'0 2px 12px rgba(0,0,0,0.3)',
-            }
-        };
-        function getTheme(){ return localStorage.getItem('ptb-theme') || 'light'; }
-        function applyTheme(name){
-            const th = THEMES[name]||THEMES.light;
-            const r = document.documentElement;
-            Object.entries(th.tg).forEach(([k,v])=> r.style.setProperty('--tg-theme-'+k.replace(/([A-Z])/g,'-$1').toLowerCase()+'-color',v));
-            Object.entries(th).filter(([k])=>!k.startsWith('tg')).forEach(([k,v])=> r.style.setProperty('--ptb-'+k.replace(/([A-Z])/g,'-$1').toLowerCase(),v));
-            localStorage.setItem('ptb-theme',name);
+        /* ── Theme ── */
+        function applyTheme(dark){
+            document.documentElement.classList.toggle('dark',dark);
+            localStorage.setItem('ptb-theme',dark?'dark':'light');
+            tg?.setHeaderColor?.(dark?'#0d1117':'#ffffff');
+            tg?.setBackgroundColor?.(dark?'#0d1117':'#ffffff');
         }
-        applyTheme(getTheme());
+        applyTheme(localStorage.getItem('ptb-theme')==='dark');
 
-        /* ─── i18n (webapp-local) ─── */
-        const UI = {
-            ru: { chat:'Чат', profile:'Профиль', deposit:'Пополнить', history:'История', promo:'Промо', settings:'Настройки',
-                  theme:'Тема оформления', lang:'Язык интерфейса', light:'Светлая', dark:'Тёмная',
-                  wallet:'DUCO кошелёк', version:'Версия', emptyChat:'Напишите сообщение', chatHint:'Каждое сообщение стоит 1 P-Coin',
-                  messagePlaceholder:'Сообщение...', topUp:'+ Пополнить', historyTitle:'История операций',
-                  noHistory:'Пока ничего нет', depositTitle:'Пополнение баланса', transfer:'Перевод DUCO',
-                  mining:'Майнинг на кошелёк бота', howMuch:'Сколько P-Coin хотите?', example:'Например: 10',
-                  back:'Назад', next:'Далее', username:'Ваш ник в Duino-Coin', createReq:'Создать заявку',
-                  minerSetup:'Настройте майнер', reqCreated:'Заявка создана', sendExact:'Отправьте ровно',
-                  autoCheck:'Бот проверит платёж автоматически', promoTitle:'Активировать промокод', promoHint:'#слово',
-                  promoActivated:'Промокод активирован!', promoUsed:'Вы уже использовали этот промокод',
-                  promoNotFound:'Промокод не найден', settingsTitle:'Настройки', notLinked:'Не привязан',
-                  registration:'Регистрация', balanceLabel:'P-Coin баланс', spentLabel:'Всего потрачено',
-                  file:'Файл', photo:'Фото', video:'Видео', sendFile:'Отправить файл', cancel:'Отмена',
-                  chats:'Чаты', newChat:'Новый чат', deleteChat:'Удалить', chatDate:'Дата', confirmDelete:'Удалить чат?',
-                  profileTitle:'Профиль', settingsBtn:'Настройки', noUsername:'Без имени',
-                  sending:'Отправка...', networkError:'Ошибка сети', insufficientBalance:'Недостаточно P-Coin',
-                  typeDeposit:'Пополнение', typeExchange:'Обмен', typeSpend:'Списание', typeRefund:'Возврат',
-                  fileSent:'Файл отправлен', unsupportedType:'Тип файла не поддерживается',
+        /* ── i18n ── */
+        const UI={
+            ru:{chat:'Чат',profile:'Профиль',deposit:'Пополнить',history:'История',settings:'Настройки',
+                theme:'Тема',lang:'Язык',light:'Светлая',dark:'Тёмная',
+                wallet:'DUCO кошелёк',emptyChat:'Напишите сообщение',chatHint:'Каждое сообщение — 1 P-Coin',
+                placeholder:'Сообщение...',topUp:'Пополнить',historyTitle:'История',
+                noHistory:'Пока ничего',depositTitle:'Пополнение',transfer:'Перевод DUCO',
+                mining:'Майнинг',howMuch:'Сколько P-Coin?',example:'10',back:'Назад',next:'Далее',
+                username:'Ваш DUCO ник',createReq:'Создать',minerSetup:'Майнер',
+                reqCreated:'Заявка создана',sendExact:'Отправьте ровно',
+                autoCheck:'Бот проверит автоматически',promoTitle:'Промокод',promoHint:'#слово',
+                promoOk:'Активирован!',notLinked:'Не привязан',reg:'Регистрация',
+                balance:'Баланс',spent:'Потрачено',photo:'Фото',video:'Видео',file:'Файл',
+                chats:'Чаты',newChat:'Новый чат',confirmDel:'Удалить чат?',settingsTitle:'Настройки',
+                deposit:'Пополнить',promo:'Промо',
             },
-            en: { chat:'Chat', profile:'Profile', deposit:'Deposit', history:'History', promo:'Promo', settings:'Settings',
-                  theme:'Theme', lang:'Language', light:'Light', dark:'Dark',
-                  wallet:'DUCO wallet', version:'Version', emptyChat:'Type a message', chatHint:'Each message costs 1 P-Coin',
-                  messagePlaceholder:'Message...', topUp:'+ Deposit', historyTitle:'Transaction history',
-                  noHistory:'Nothing yet', depositTitle:'Top up balance', transfer:'DUCO Transfer',
-                  mining:'Mine to bot wallet', howMuch:'How many P-Coin?', example:'e.g. 10',
-                  back:'Back', next:'Next', username:'Your Duino-Coin username', createReq:'Create request',
-                  minerSetup:'Setup miner', reqCreated:'Request created', sendExact:'Send exactly',
-                  autoCheck:'Bot will verify automatically', promoTitle:'Activate promo code', promoHint:'#code',
-                  promoActivated:'Promo activated!', promoUsed:'Already used this code',
-                  promoNotFound:'Promo not found', settingsTitle:'Settings', notLinked:'Not linked',
-                  registration:'Registration', balanceLabel:'P-Coin balance', spentLabel:'Total spent',
-                  file:'File', photo:'Photo', video:'Video', sendFile:'Send file', cancel:'Cancel',
-                  chats:'Chats', newChat:'New chat', deleteChat:'Delete', chatDate:'Date', confirmDelete:'Delete chat?',
-                  profileTitle:'Profile', settingsBtn:'Settings', noUsername:'No name',
-                  sending:'Sending...', networkError:'Network error', insufficientBalance:'Insufficient P-Coin',
-                  typeDeposit:'Deposit', typeExchange:'Exchange', typeSpend:'Spend', typeRefund:'Refund',
-                  fileSent:'File sent', unsupportedType:'Unsupported file type',
+            en:{chat:'Chat',profile:'Profile',deposit:'Deposit',history:'History',settings:'Settings',
+                theme:'Theme',lang:'Language',light:'Light',dark:'Dark',
+                wallet:'DUCO wallet',emptyChat:'Type a message',chatHint:'Each message — 1 P-Coin',
+                placeholder:'Message...',topUp:'Deposit',historyTitle:'History',
+                noHistory:'Nothing yet',depositTitle:'Top up',transfer:'DUCO Transfer',
+                mining:'Mining',howMuch:'How many P-Coin?',example:'10',back:'Back',next:'Next',
+                username:'Your DUCO username',createReq:'Create',minerSetup:'Miner',
+                reqCreated:'Request created',sendExact:'Send exactly',
+                autoCheck:'Bot verifies automatically',promoTitle:'Promo code',promoHint:'#code',
+                promoOk:'Activated!',notLinked:'Not linked',reg:'Registration',
+                balance:'Balance',spent:'Spent',photo:'Photo',video:'Video',file:'File',
+                chats:'Chats',newChat:'New chat',confirmDel:'Delete chat?',settingsTitle:'Settings',
+                deposit:'Deposit',promo:'Promo',
             }
         };
-        const LangCtx = createContext();
-        function useLang(){ return useContext(LangCtx); }
-        function t(key){ const lang=useLang(); return UI[lang]?.[key]||UI.en[key]||key; }
+        const LangCtx=createContext();
+        const useLang=()=>useContext(LangCtx);
 
-        /* ─── API ─── */
-        const API = window.location.origin;
-        async function api(path, method='GET', body=null){
-            const h = { 'Content-Type':'application/json', 'X-Telegram-Init-Data': tg?.initData||'' };
-            const opts = { method, headers:h };
-            if(body) opts.body=JSON.stringify(body);
-            const r = await fetch(API+path, opts);
-            if(!r.ok){ const e=await r.json().catch(()=>({error:'Network error'})); throw new Error(e.error||'HTTP '+r.status); }
+        /* ── API ── */
+        async function api(path,method='GET',body=null){
+            const h={'Content-Type':'application/json','X-Telegram-Init-Data':tg?.initData||''};
+            const opts={method,headers:h};
+            if(body)opts.body=JSON.stringify(body);
+            const r=await fetch(window.location.origin+path,opts);
+            if(!r.ok){const e=await r.json().catch(()=>({error:'Error'}));throw new Error(e.error||'HTTP '+r.status)}
             return r.json();
         }
 
-        /* ─── Icons (SVG) ─── */
-        const I = {
-            chat: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
-            user: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            wallet: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 10H2"/></svg>,
-            clock: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
-            gift: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5"/></svg>,
-            gear: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-            send: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-            back: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
-            copy: (s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
-            plus: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            trash: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
-            paperclip: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>,
-            image: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
-            video: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>,
-            file: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
-            sun: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
-            moon: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
-            globe: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
-            x: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-            check: (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            menu: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
-            messageSquare: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+        /* ── Icons ── */
+        const I=(d,s=22,p={})=>React.createElement('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round',...p},d);
+        const icons={
+            chat:I(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
+            user:I(<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
+            wallet:I(<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/><path d="M16 14a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/></>),
+            clock:I(<><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></>),
+            gift:I(<><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 010-5A4.8 8 0 0112 8a4.8 8 0 014.5-5 2.5 2.5 0 010 5"/></>),
+            gear:I(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>),
+            send:I(<><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></>),
+            back:I(<><path d="M15 18l-6-6 6-6"/></>),
+            copy:I(<><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></>),
+            plus:I(<><path d="M12 5v14M5 12h14"/></>),
+            trash:I(<><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M10 11v6M14 11v6"/></>),
+            clip:I(<><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></>),
+            img:I(<><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></>),
+            vid:I(<><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></>),
+            file:I(<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></>),
+            sun:I(<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></>),
+            moon:I(<><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></>),
+            globe:I(<><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10 15 15 0 014-10z"/></>),
+            x:I(<><path d="M18 6L6 18M6 6l12 12"/></>),
+            menu:I(<><path d="M3 12h18M3 6h18M3 18h18"/></>),
+            msg:I(<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>),
+            chevR:I(<><path d="M9 18l6-6-6-6"/></>),
         };
 
-        /* ─── Toast ─── */
-        function Toast({ message, type, onClose }) {
-            useEffect(()=>{ const t=setTimeout(onClose,2500); return ()=>clearTimeout(t); },[]);
-            const bg = type==='error'?'var(--ptb-error)':type==='success'?'var(--ptb-success)':'var(--ptb-primary)';
-            return <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 text-white px-4 py-3 rounded-xl text-center text-sm font-medium fade-in" style={{backgroundColor:bg,boxShadow:'0 4px 20px rgba(0,0,0,0.2)'}}>{message}</div>;
+        /* ── Toast ── */
+        function Toast({msg,type='info',onClose}){
+            useEffect(()=>{const t=setTimeout(onClose,2500);return()=>clearTimeout(t)},[]);
+            const bg=type==='error'?'var(--error)':type==='success'?'var(--success)':'var(--accent)';
+            return <div className="fixed top-4 left-4 right-4 z-50 text-white px-4 py-3 rounded-2xl text-center text-sm font-semibold fade-in" style={{backgroundColor:bg,boxShadow:'var(--shadow-lg)',maxWidth:400,margin:'0 auto'}}>{msg}</div>;
         }
 
-        /* ─── Chat History (localStorage) ─── */
-        const CHATS_KEY = 'ptb-chats';
-        function loadChats(){ try{ return JSON.parse(localStorage.getItem(CHATS_KEY))||[]; }catch{return[];} }
-        function saveChats(chats){ localStorage.setItem(CHATS_KEY, JSON.stringify(chats)); }
-        function makeChat(){ return { id: Date.now().toString(), title:'Новый чат', messages:[], createdAt: new Date().toISOString() }; }
+        /* ── Chats persistence ── */
+        const CK='ptb-chats';
+        const loadChats=()=>{try{return JSON.parse(localStorage.getItem(CK))||[]}catch{return[]}};
+        const save=c=>localStorage.setItem(CK,JSON.stringify(c));
 
-        /* ─── Chat Page ─── */
-        function ChatPage({ onNavigate }) {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const [chats, setChats] = useState(()=> loadChats());
-            const [activeChat, setActiveChat] = useState(null);
-            const [input, setInput] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [balance, setBalance] = useState(null);
-            const [profile, setProfile] = useState(null);
-            const [showSidebar, setShowSidebar] = useState(false);
-            const [attachMenu, setAttachMenu] = useState(false);
-            const chatRef = useRef(null);
-            const fileRef = useRef(null);
-            const videoRef = useRef(null);
-            const imageRef = useRef(null);
+        /* ── Chat Page ── */
+        function ChatPage({onNav}){
+            const{lang}=useLang();const u=UI[lang];
+            const[chats,setChats]=useState(loadChats);
+            const[active,setActive]=useState(null);
+            const[input,setInput]=useState('');
+            const[loading,setLoading]=useState(false);
+            const[balance,setBalance]=useState(null);
+            const[profile,setProfile]=useState(null);
+            const[sidebar,setSidebar]=useState(false);
+            const[attach,setAttach]=useState(false);
+            const ref=useRef();const bottomRef=useRef();
+            const imgRef=useRef();const vidRef=useRef();const filRef=useRef();
 
-            useEffect(()=>{ api('/api/profile').then(d=>{setBalance(d.balance);setProfile(d);}).catch(()=>{}); },[]);
+            useEffect(()=>{api('/api/profile').then(d=>{setBalance(d.balance);setProfile(d)}).catch(()=>{})},[]);
+            const msgs=useMemo(()=>chats.find(c=>c.id===active)?.messages||[],[chats,active]);
+            useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth'})},[msgs,loading]);
+            useEffect(()=>{save(chats)},[chats]);
 
-            const messages = useMemo(()=> chats.find(c=>c.id===activeChat)?.messages||[], [chats, activeChat]);
-
-            useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [messages, loading]);
-
-            const updateMessages = (msgs) => {
-                setChats(prev => prev.map(c => c.id===activeChat ? {...c, messages:msgs, title: msgs.find(m=>m.role==='user')?.text?.slice(0,40)||c.title} : c));
+            const updateMsgs=m=>{
+                setChats(p=>p.map(c=>c.id===active?{...c,messages:m,title:m.find(x=>x.role==='user')?.text?.slice(0,35)||c.title}:c));
             };
+            const newChat=()=>{const c={id:String(Date.now()),title:u.newChat,messages:[],ts:Date.now()};setChats(p=>[c,...p]);setActive(c.id);setSidebar(false)};
+            const delChat=id=>{setChats(p=>p.filter(c=>c.id!==id));if(active===id)setActive(chats.find(c=>c.id!==id)?.id||null)};
 
-            const newChat = () => {
-                const c = makeChat();
-                setChats(prev=>[c,...prev]);
-                setActiveChat(c.id);
-                setShowSidebar(false);
-            };
-
-            const deleteChat = (id) => {
-                setChats(prev=>prev.filter(c=>c.id!==id));
-                if(activeChat===id) setActiveChat(chats.find(c=>c.id!==id)?.id||null);
-            };
-
-            const send = async (fileInfo) => {
-                const text = input.trim();
-                if((!text && !fileInfo) || loading) return;
-                if(!activeChat){ newChat(); return; }
-                const userMsg = { role:'user', text: fileInfo ? `[${fileInfo.type}] ${fileInfo.name}` : text, file: fileInfo||null };
-                const newMsgs = [...messages, userMsg];
-                updateMessages(newMsgs);
-                setInput('');
-                setAttachMenu(false);
-                setLoading(true);
-                try {
-                    const res = await api('/api/chat', 'POST', { text: fileInfo ? `${fileInfo.type}: ${fileInfo.name}` : text });
-                    updateMessages([...newMsgs, { role:'ai', text: res.reply }]);
-                    setBalance(res.balance);
-                } catch(e) {
-                    updateMessages([...newMsgs, { role:'error', text: e.message }]);
-                }
+            const send=async fi=>{
+                const txt=input.trim();
+                if((!txt&&!fi)||loading)return;
+                if(!active){newChat();return}
+                const um={role:'user',text:fi?`[${fi.type}] ${fi.name}`:txt,fi:fi||null};
+                const nm=[...msgs,um];
+                updateMsgs(nm);setInput('');setAttach(false);setLoading(true);
+                try{const r=await api('/api/chat','POST',{text:fi?`${fi.type}: ${fi.name}`:txt});updateMsgs([...nm,{role:'ai',text:r.reply}]);setBalance(r.balance)}
+                catch(e){updateMsgs([...nm,{role:'error',text:e.message}])}
                 setLoading(false);
             };
 
-            const handleFile = (type, ref) => {
-                ref.current.click();
-            };
+            const pickFile=(type,ref)=>{ref.current.click()};
+            const onFile=(e,type)=>{const f=e.target.files[0];if(f)send({type,name:f.name,size:f.size});e.target.value=''};
 
-            const onFileChange = (e, type) => {
-                const file = e.target.files[0];
-                if(!file) return;
-                send({ type, name: file.name, size: file.size });
-                e.target.value = '';
-            };
-
-            /* Sidebar: list of chats */
-            const Sidebar = () => (
-                <div className="fixed inset-0 z-40 flex" style={{display:showSidebar?'flex':'none'}}>
-                    <div className="absolute inset-0" style={{backgroundColor:'var(--ptb-overlay)'}} onClick={()=>setShowSidebar(false)}/>
-                    <div className="relative w-72 h-full flex flex-col slide-up" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)', borderRight:'1px solid var(--ptb-border)'}}>
-                        <div className="flex items-center justify-between px-4 py-3 border-b" style={{borderColor:'var(--ptb-border)'}}>
-                            <span className="font-semibold text-sm">{u.chats}</span>
-                            <button onClick={()=>setShowSidebar(false)} className="p-1 rounded-lg" style={{color:'var(--tg-theme-hint-color,#999)'}}><I.x /></button>
+            return(
+                <div className="flex flex-col h-full">
+                    {/* Sidebar overlay */}
+                    {sidebar&&<div className="fixed inset-0 z-40 flex">
+                        <div className="absolute inset-0 fade-in" style={{background:'var(--overlay)'}} onClick={()=>setSidebar(false)}/>
+                        <div className="relative w-72 h-full flex flex-col slide-up" style={{background:'var(--bg)',boxShadow:'4px 0 24px rgba(0,0,0,0.1)'}}>
+                            <div className="flex items-center justify-between px-4 py-4" style={{borderBottom:'1px solid var(--card-border)'}}>
+                                <span className="font-bold" style={{color:'var(--fg)'}}>{u.chats}</span>
+                                <button onClick={()=>setSidebar(false)} className="btn-press w-8 h-8 flex items-center justify-center rounded-lg" style={{color:'var(--fg2)'}}>{icons.x}</button>
+                            </div>
+                            <button onClick={newChat} className="btn-press flex items-center gap-2 mx-3 mt-3 px-4 py-3 rounded-2xl text-sm font-semibold text-white" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)',boxShadow:'0 2px 8px rgba(59,130,246,0.3)'}}>
+                                <span className="w-5 h-5 flex items-center justify-center">{icons.plus}</span>{u.newChat}
+                            </button>
+                            <div className="flex-1 overflow-y-auto p-2 mt-2">
+                                {chats.length===0&&<p className="text-center text-xs mt-10" style={{color:'var(--fg3)'}}>{u.noHistory}</p>}
+                                {chats.map(c=>(
+                                    <div key={c.id} onClick={()=>{setActive(c.id);setSidebar(false)}}
+                                        className="btn-press flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer mb-1 text-sm transition-all"
+                                        style={{background:active===c.id?'var(--accent-light)':'transparent',color:'var(--fg)'}}>
+                                        <span style={{color:active===c.id?'var(--accent)':'var(--fg3)',flexShrink:0}}>{icons.msg}</span>
+                                        <span className="flex-1 truncate font-medium">{c.title}</span>
+                                        <button onClick={e=>{e.stopPropagation();if(confirm(u.confirmDel))delChat(c.id)}}
+                                            className="btn-press opacity-30 hover:opacity-100 p-1 rounded-lg" style={{color:'var(--fg3)',flexShrink:0}}>{icons.trash}</button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <button onClick={newChat} className="flex items-center gap-2 mx-3 mt-3 px-3 py-2.5 rounded-xl text-sm font-medium" style={{backgroundColor:'var(--ptb-primary)', color:'#fff'}}>
-                            <I.plus /> {u.newChat}
-                        </button>
-                        <div className="flex-1 overflow-y-auto py-2 px-2">
-                            {chats.length===0 && <p className="text-center text-xs mt-8" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.noHistory}</p>}
-                            {chats.map(c=>(
-                                <div key={c.id} onClick={()=>{setActiveChat(c.id);setShowSidebar(false);}}
-                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer mb-1 text-sm transition-colors ${activeChat===c.id?'':'hover:opacity-80'}`}
-                                    style={activeChat===c.id?{backgroundColor:'var(--ptb-card)'}:{}}>
-                                    <I.messageSquare s={16} />
-                                    <span className="flex-1 truncate">{c.title}</span>
-                                    <button onClick={e=>{e.stopPropagation();if(confirm(u.confirmDelete))deleteChat(c.id);}}
-                                        className="p-1 rounded-lg opacity-50 hover:opacity-100" style={{color:'var(--tg-theme-hint-color,#999)'}}><I.trash s={14}/></button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
+                    </div>}
 
-            return (
-                <div className="flex flex-col h-screen">
-                    <Sidebar />
                     {/* Header */}
-                    <header className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
-                        <button onClick={()=>setShowSidebar(true)} className="p-1.5 rounded-lg transition-colors" style={{color:'var(--tg-theme-hint-color,#71717a)'}}><I.menu /></button>
-                        <h1 className="font-bold text-base flex-1">Point AI</h1>
-                        <span className="text-xs font-medium px-2 py-1 rounded-lg" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-hint-color,#71717a)'}}>
-                            {balance!==null ? balance.toFixed(2)+' PC' : '...'}
-                        </span>
-                        <button onClick={()=>onNavigate('deposit')} className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
-                            {u.topUp}
-                        </button>
-                        {profile && <button onClick={()=>onNavigate('profile')} className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-hint-color,#71717a)'}}>
-                            {profile.username ? profile.username[0].toUpperCase() : tg?.initDataUnsafe?.user?.first_name?.[0]?.toUpperCase() || 'U'}
-                        </button>}
+                    <header className="flex items-center gap-3 px-4 py-3 shrink-0" style={{background:'var(--header-bg)',borderBottom:'1px solid var(--nav-border)'}}>
+                        <button onClick={()=>setSidebar(true)} className="btn-press w-9 h-9 flex items-center justify-center rounded-xl" style={{color:'var(--fg2)'}}>{icons.menu}</button>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="font-extrabold text-base truncate" style={{color:'var(--fg)'}}>Point AI</h1>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{background:'var(--accent-light)',color:'var(--accent)'}}>
+                                {balance!=null?balance.toFixed(2)+' PC':'...'}
+                            </span>
+                            <button onClick={()=>onNav('deposit')} className="btn-press text-xs font-bold px-3 py-1.5 rounded-xl text-white" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)'}}>
+                                {u.topUp}
+                            </button>
+                            {profile&&<button onClick={()=>onNav('profile')} className="btn-press w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{background:'linear-gradient(135deg,#8b5cf6,#6d28d9)'}}>
+                                {(profile.username||tg?.initDataUnsafe?.user?.first_name||'U')[0].toUpperCase()}
+                            </button>}
+                        </div>
                     </header>
 
                     {/* Messages */}
-                    <div ref={chatRef} className="flex-1 overflow-y-auto chat-scroll px-3 md:px-4 py-4 space-y-3">
-                        {messages.length===0 && (
-                            <div className="text-center mt-16 md:mt-24 fade-in" style={{color:'var(--tg-theme-hint-color,#999)'}}>
-                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-card)'}}>
-                                    <I.chat s={28} />
-                                </div>
-                                <p className="font-medium text-sm">{u.emptyChat}</p>
-                                <p className="text-xs mt-1 opacity-60">{u.chatHint}</p>
+                    <div ref={ref} className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-3" style={{background:'var(--bg)'}}>
+                        {msgs.length===0&&<div className="text-center mt-20 fade-in">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{background:'linear-gradient(135deg,var(--accent-light),var(--bg3))',color:'var(--accent)'}}>
+                                {React.cloneElement(icons.chat,{width:30,height:30})}
                             </div>
-                        )}
-                        {messages.map((m,i)=>(
+                            <p className="font-bold text-sm" style={{color:'var(--fg)'}}>{u.emptyChat}</p>
+                            <p className="text-xs mt-1" style={{color:'var(--fg3)'}}>{u.chatHint}</p>
+                        </div>}
+                        {msgs.map((m,i)=>(
                             <div key={i} className={`fade-in flex ${m.role==='user'?'justify-end':'justify-start'}`}>
-                                <div className={`max-w-[80%] md:max-w-[70%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${m.role==='user'?'rounded-br-sm':'rounded-bl-sm'}`}
+                                <div className="max-w-[82%] md:max-w-[72%] px-4 py-3 text-[14px] leading-relaxed break-words"
                                     style={{
-                                        backgroundColor: m.role==='user'?'var(--ptb-chat-user)':m.role==='error'?'var(--ptb-error-bg)':'var(--ptb-chat-ai)',
-                                        color: m.role==='user'?'var(--ptb-chat-user-text)':m.role==='error'?'var(--ptb-error)':'var(--ptb-chat-ai-text)',
+                                        background:m.role==='user'?'linear-gradient(135deg,#3b82f6,#2563eb)':m.role==='error'?'var(--error-bg)':'var(--chat-ai)',
+                                        color:m.role==='user'?'var(--chat-me-fg)':m.role==='error'?'var(--error)':'var(--chat-ai-fg)',
+                                        borderRadius:m.role==='user'?'18px 18px 4px 18px':'18px 18px 18px 4px',
+                                        boxShadow:'var(--shadow)',
                                     }}>
-                                    {m.file && <div className="flex items-center gap-1.5 mb-1 opacity-75 text-xs"><I.paperclip s={12}/> {m.file.name}</div>}
+                                    {m.fi&&<div className="flex items-center gap-1.5 mb-1.5 opacity-70 text-xs font-medium">{icons.clip} {m.fi.name}</div>}
                                     {m.text}
                                 </div>
                             </div>
                         ))}
-                        {loading && (
-                            <div className="flex justify-start fade-in">
-                                <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{backgroundColor:'var(--ptb-chat-ai)'}}>
-                                    <div className="typing-dots flex gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:'var(--tg-theme-hint-color,#aaa)'}}/>
-                                    </div>
+                        {loading&&<div className="flex justify-start fade-in">
+                            <div className="px-5 py-3.5 rounded-2xl" style={{background:'var(--chat-ai)',boxShadow:'var(--shadow)',borderRadius:'18px 18px 18px 4px'}}>
+                                <div className="flex gap-1.5 items-center">
+                                    <span className="typing-dot w-2 h-2 rounded-full" style={{background:'var(--fg3)'}}/>
+                                    <span className="typing-dot w-2 h-2 rounded-full" style={{background:'var(--fg3)'}}/>
+                                    <span className="typing-dot w-2 h-2 rounded-full" style={{background:'var(--fg3)'}}/>
                                 </div>
                             </div>
-                        )}
+                        </div>}
+                        <div ref={bottomRef}/>
                     </div>
 
-                    {/* Input bar */}
-                    <div className="border-t shrink-0" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
-                        <div className="flex items-end gap-1.5 px-2 md:px-3 py-2">
-                            <input ref={imageRef} type="file" accept="image/*" onChange={e=>onFileChange(e,'photo')}/>
-                            <input ref={videoRef} type="file" accept="video/*" onChange={e=>onFileChange(e,'video')}/>
-                            <input ref={fileRef} type="file" onChange={e=>onFileChange(e,'file')}/>
+                    {/* Input */}
+                    <div className="shrink-0" style={{background:'var(--nav-bg)',borderTop:'1px solid var(--nav-border)'}}>
+                        <div className="flex items-end gap-2 px-3 py-2.5 safe-bottom">
+                            <input ref={imgRef} type="file" accept="image/*" onChange={e=>onFile(e,'photo')}/>
+                            <input ref={vidRef} type="file" accept="video/*" onChange={e=>onFile(e,'video')}/>
+                            <input ref={filRef} type="file" onChange={e=>onFile(e,'file')}/>
                             <div className="relative">
-                                <button onClick={()=>setAttachMenu(!attachMenu)} className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors" style={{color:'var(--tg-theme-hint-color,#71717a)'}}>
-                                    <I.paperclip />
+                                <button onClick={()=>setAttach(!attach)} className="btn-press w-10 h-10 flex items-center justify-center rounded-2xl" style={{color:attach?'var(--accent)':'var(--fg3)',background:attach?'var(--accent-light)':'var(--bg3)'}}>
+                                    {icons.clip}
                                 </button>
-                                {attachMenu && (
-                                    <div className="absolute bottom-11 left-0 rounded-xl p-1.5 fade-in" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)',boxShadow:'var(--ptb-shadow,0 4px 20px rgba(0,0,0,0.15))',border:'1px solid var(--ptb-border)'}}>
-                                        <button onClick={()=>handleFile('photo',imageRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
-                                            <I.image s={16}/> {u.photo}
+                                {attach&&<div className="absolute bottom-12 left-0 rounded-2xl p-1.5 slide-up" style={{background:'var(--card)',boxShadow:'var(--shadow-lg)',border:'1px solid var(--card-border)',minWidth:140}}>
+                                    {[{t:'photo',icon:icons.img,label:u.photo},{t:'video',icon:icons.vid,label:u.video},{t:'file',icon:icons.file,label:u.file}].map(x=>(
+                                        <button key={x.t} onClick={()=>pickFile(x.t,x.t==='photo'?imgRef:x.t==='video'?vidRef:filRef)}
+                                            className="btn-press flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left" style={{color:'var(--fg)'}}>
+                                            <span style={{color:'var(--fg2)',width:18,height:18,flexShrink:0}}>{x.icon}</span>{x.label}
                                         </button>
-                                        <button onClick={()=>handleFile('video',videoRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
-                                            <I.video s={16}/> {u.video}
-                                        </button>
-                                        <button onClick={()=>handleFile('file',fileRef)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full text-left transition-colors hover:opacity-80" style={{color:'var(--tg-theme-text-color,#18181b)'}}>
-                                            <I.file s={16}/> {u.file}
-                                        </button>
-                                    </div>
-                                )}
+                                    ))}
+                                </div>}
                             </div>
-                            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()}
-                                placeholder={u.messagePlaceholder}
-                                className="flex-1 px-3.5 py-2 rounded-xl text-sm outline-none min-h-[36px] max-h-24 resize-none"
-                                style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}}
-                                disabled={loading} rows={1}/>
-                            <button onClick={()=>send()} disabled={(!input.trim()&&!loading)}
-                                className="w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-30"
-                                style={{backgroundColor:input.trim()?'var(--ptb-primary)':'var(--ptb-card)',color:input.trim()?'#fff':'var(--tg-theme-hint-color,#aaa)'}}>
-                                <I.send s={16}/>
+                            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}
+                                placeholder={u.placeholder}
+                                className="flex-1 px-4 py-2.5 rounded-2xl text-sm outline-none min-h-[40px] max-h-28"
+                                style={{background:'var(--bg3)',color:'var(--fg)'}} disabled={loading} rows={1}/>
+                            <button onClick={()=>send()} disabled={!input.trim()||loading}
+                                className="btn-press w-10 h-10 flex items-center justify-center rounded-2xl transition-all"
+                                style={{background:input.trim()?'linear-gradient(135deg,#3b82f6,#2563eb)':'var(--bg3)',color:input.trim()?'#fff':'var(--fg3)',boxShadow:input.trim()?'0 2px 8px rgba(59,130,246,0.3)':'none'}}>
+                                {icons.send}
                             </button>
                         </div>
                     </div>
@@ -388,326 +327,280 @@
             );
         }
 
-        /* ─── Profile Page ─── */
-        function ProfilePage({ onNavigate }) {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const [profile, setProfile] = useState(null);
-            useEffect(()=>{ api('/api/profile').then(setProfile).catch(()=>{}); },[]);
-            if(!profile) return <div className="flex items-center justify-center h-64" style={{color:'var(--tg-theme-hint-color,#999)'}}>...</div>;
-            return (
+        /* ── Profile Page ── */
+        function ProfilePage({onNav}){
+            const{lang}=useLang();const u=UI[lang];
+            const[p,setP]=useState(null);
+            useEffect(()=>{api('/api/profile').then(setP).catch(()=>{})},[]);
+            if(!p)return <div className="flex items-center justify-center h-64" style={{color:'var(--fg3)'}}>...</div>;
+            return(
                 <div className="p-4 max-w-lg mx-auto space-y-4 fade-in">
-                    <div className="rounded-2xl p-6 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center text-xl font-bold" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
-                            {(profile.username||tg?.initDataUnsafe?.user?.first_name||'U')[0].toUpperCase()}
+                    <div className="rounded-3xl p-6 text-center" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl font-extrabold text-white" style={{background:'linear-gradient(135deg,#8b5cf6,#6d28d9)',boxShadow:'0 4px 12px rgba(139,92,246,0.3)'}}>
+                            {(p.username||tg?.initDataUnsafe?.user?.first_name||'U')[0].toUpperCase()}
                         </div>
-                        <h2 className="font-bold text-lg">{profile.username||u.noUsername}</h2>
-                        <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>ID: {profile.telegram_id}</p>
+                        <h2 className="font-bold text-lg" style={{color:'var(--fg)'}}>{p.username||'User'}</h2>
+                        <p className="text-xs mt-1" style={{color:'var(--fg3)'}}>ID {p.telegram_id}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl p-4 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
-                            <p className="text-2xl font-bold" style={{color:'var(--ptb-primary)'}}>{profile.balance.toFixed(3)}</p>
-                            <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.balanceLabel}</p>
+                        <div className="rounded-2xl p-4 text-center" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                            <p className="text-2xl font-extrabold" style={{color:'var(--accent)'}}>{p.balance.toFixed(3)}</p>
+                            <p className="text-xs font-medium mt-1" style={{color:'var(--fg3)'}}>{u.balance}</p>
                         </div>
-                        <div className="rounded-xl p-4 text-center" style={{backgroundColor:'var(--ptb-card)'}}>
-                            <p className="text-2xl font-bold" style={{color:'var(--ptb-success)'}}>{profile.total_spent.toFixed(3)}</p>
-                            <p className="text-xs mt-1" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.spentLabel}</p>
+                        <div className="rounded-2xl p-4 text-center" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                            <p className="text-2xl font-extrabold" style={{color:'var(--success)'}}>{p.total_spent.toFixed(3)}</p>
+                            <p className="text-xs font-medium mt-1" style={{color:'var(--fg3)'}}>{u.spent}</p>
                         </div>
                     </div>
-                    <div className="rounded-xl p-4 space-y-2.5 text-sm" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <div className="flex justify-between"><span style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.wallet}</span><span className="font-medium">{profile.duco_wallet||u.notLinked}</span></div>
-                        <div className="flex justify-between"><span style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.registration}</span><span className="font-medium">{profile.created_at}</span></div>
+                    <div className="rounded-2xl p-4 text-sm" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="flex justify-between py-2" style={{borderBottom:'1px solid var(--card-border)'}}>
+                            <span style={{color:'var(--fg2)'}}>{u.wallet}</span><span className="font-semibold" style={{color:'var(--fg)'}}>{p.duco_wallet||u.notLinked}</span>
+                        </div>
+                        <div className="flex justify-between py-2">
+                            <span style={{color:'var(--fg2)'}}>{u.reg}</span><span className="font-semibold" style={{color:'var(--fg)'}}>{p.created_at}</span>
+                        </div>
                     </div>
-                    <button onClick={()=>onNavigate('settings')} className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2" style={{backgroundColor:'var(--ptb-card)',color:'var(--tg-theme-text-color,#18181b)'}}>
-                        <I.gear s={16}/> {u.settingsBtn}
+                    <button onClick={()=>onNav('settings')} className="btn-press w-full py-3.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2" style={{background:'var(--card)',color:'var(--fg)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <span style={{width:18,height:18}}>{icons.gear}</span>{u.settings}
                     </button>
                 </div>
             );
         }
 
-        /* ─── History Page ─── */
-        function HistoryPage() {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const labels = { deposit:u.typeDeposit, exchange:u.typeExchange, spend:u.typeSpend, refund:u.typeRefund };
-            const [history, setHistory] = useState([]);
-            useEffect(()=>{ api('/api/history').then(d=>setHistory(d.history)).catch(()=>{}); },[]);
-            return (
+        /* ── History Page ── */
+        function HistoryPage(){
+            const{lang}=useLang();const u=UI[lang];
+            const labels={deposit:u.deposit,exchange:'Exchange',spend:'Spend',refund:'Refund'};
+            const[h,setH]=useState([]);
+            useEffect(()=>{api('/api/history').then(d=>setH(d.history)).catch(()=>{})},[]);
+            return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <h2 className="font-bold text-base mb-4">{u.historyTitle}</h2>
-                    {history.length===0 ? (
-                        <p className="text-center mt-12 text-sm" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.noHistory}</p>
-                    ) : (
-                        <div className="space-y-2">
-                            {history.map((tx,i)=>(
-                                <div key={i} className="rounded-xl p-3.5 flex items-center justify-between" style={{backgroundColor:'var(--ptb-card)'}}>
-                                    <div>
-                                        <p className="text-sm font-medium">{labels[tx.transaction_type]||tx.transaction_type}</p>
-                                        <p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>{tx.created_at}</p>
-                                    </div>
-                                    <span className="font-bold text-sm" style={{color:tx.amount>=0?'var(--ptb-success)':'var(--ptb-error)'}}>
-                                        {tx.amount>=0?'+':''}{tx.amount.toFixed(3)} PC
-                                    </span>
-                                </div>
-                            ))}
+                    <h2 className="font-bold text-lg mb-4" style={{color:'var(--fg)'}}>{u.historyTitle}</h2>
+                    {h.length===0?<p className="text-center mt-16 text-sm" style={{color:'var(--fg3)'}}>{u.noHistory}</p>:
+                    <div className="space-y-2">{h.map((tx,i)=>(
+                        <div key={i} className="rounded-2xl p-4 flex items-center justify-between" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                            <div><p className="text-sm font-semibold" style={{color:'var(--fg)'}}>{labels[tx.transaction_type]||tx.transaction_type}</p>
+                            <p className="text-xs mt-0.5" style={{color:'var(--fg3)'}}>{tx.created_at}</p></div>
+                            <span className="font-bold text-sm" style={{color:tx.amount>=0?'var(--success)':'var(--error)'}}>
+                                {tx.amount>=0?'+':''}{tx.amount.toFixed(3)} PC
+                            </span>
                         </div>
-                    )}
+                    ))}</div>}
                 </div>
             );
         }
 
-        /* ─── Deposit Page ─── */
-        function DepositPage() {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const [step, setStep] = useState('method');
-            const [amount, setAmount] = useState('');
-            const [username, setUsername] = useState('');
-            const [depositInfo, setDepositInfo] = useState(null);
-            const [loading, setLoading] = useState(false);
+        /* ── Deposit Page ── */
+        function DepositPage(){
+            const{lang}=useLang();const u=UI[lang];
+            const[step,setStep]=useState('method');
+            const[amount,setAmount]=useState('');
+            const[username,setUsername]=useState('');
+            const[info,setInfo]=useState(null);
+            const[loading,setLoading]=useState(false);
 
-            const createDeposit = async (ducoUser, exact) => {
-                setLoading(true);
-                try { const r=await api('/api/deposit','POST',{amount:parseFloat(amount),duco_username:ducoUser,exact}); setDepositInfo(r); setStep('instructions'); }
-                catch(e){ alert(e.message); }
-                setLoading(false);
-            };
+            const create=async(uu,ex)=>{setLoading(true);try{const r=await api('/api/deposit','POST',{amount:parseFloat(amount),duco_username:uu,exact:ex});setInfo(r);setStep('done')}catch(e){alert(e.message)}setLoading(false)};
+            const goAmount=async()=>{const a=parseFloat(amount);if(isNaN(a)||a<=0)return;setLoading(true);try{const p=await api('/api/profile');p.duco_wallet?await create(p.duco_wallet,true):setStep('user')}catch(e){alert(e.message)}setLoading(false)};
 
-            const handleAmount = async () => {
-                const a=parseFloat(amount);
-                if(isNaN(a)||a<=0) return;
-                setLoading(true);
-                try { const p=await api('/api/profile'); p.duco_wallet ? await createDeposit(p.duco_wallet,true) : setStep('username'); }
-                catch(e){ alert(e.message); }
-                setLoading(false);
-            };
-
-            const Card = ({children, onClick, active}) => (
-                <button onClick={onClick} className="w-full p-4 rounded-xl text-left transition-all" style={{backgroundColor:'var(--ptb-card)', border: active?'2px solid var(--ptb-primary)':'2px solid transparent'}}>
+            const Card=({children,onClick})=>(
+                <button onClick={onClick} className="btn-press w-full p-4 rounded-2xl text-left" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
                     {children}
                 </button>
             );
 
-            if(step==='method') return (
+            if(step==='method')return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <h2 className="font-bold text-base mb-4">{u.depositTitle}</h2>
+                    <h2 className="font-bold text-lg mb-4" style={{color:'var(--fg)'}}>{u.depositTitle}</h2>
                     <div className="space-y-3">
-                        <Card onClick={()=>{setStep('amount');}}>
+                        <Card onClick={()=>setStep('amount')}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}><I.wallet s={20}/></div>
-                                <div><p className="font-medium text-sm">{u.transfer}</p><p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>DUCO -&gt; P-Coin</p></div>
+                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)'}}>{icons.wallet}</div>
+                                <div><p className="font-semibold text-sm" style={{color:'var(--fg)'}}>{u.transfer}</p><p className="text-xs mt-0.5" style={{color:'var(--fg3)'}}>DUCO → P-Coin</p></div>
                             </div>
                         </Card>
                         <Card onClick={()=>setStep('mining')}>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{backgroundColor:'var(--ptb-cardHover)',color:'var(--tg-theme-text-color,#18181b)'}}><I.gear s={20}/></div>
-                                <div><p className="font-medium text-sm">{u.mining}</p><p className="text-xs mt-0.5" style={{color:'var(--tg-theme-hint-color,#999)'}}>Proportional to shares</p></div>
+                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{background:'var(--bg3)',color:'var(--fg2)'}}>{icons.gear}</div>
+                                <div><p className="font-semibold text-sm" style={{color:'var(--fg)'}}>{u.mining}</p><p className="text-xs mt-0.5" style={{color:'var(--fg3)'}}>Proportional to shares</p></div>
                             </div>
                         </Card>
                     </div>
                 </div>
             );
 
-            if(step==='amount') return (
+            const Back=({to})=>(
+                <button onClick={()=>setStep(to)} className="btn-press flex items-center gap-1 text-sm mb-4 font-semibold" style={{color:'var(--accent)'}}>
+                    <span style={{width:16,height:16}}>{icons.back}</span>{u.back}
+                </button>
+            );
+
+            if(step==='amount')return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <button onClick={()=>setStep('method')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
-                    <h2 className="font-bold text-base mb-3">{u.howMuch}</h2>
+                    <Back to="method"/>
+                    <h2 className="font-bold text-lg mb-3" style={{color:'var(--fg)'}}>{u.howMuch}</h2>
                     <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder={u.example}
-                        className="w-full px-4 py-3 rounded-xl text-lg outline-none mb-4" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}} autoFocus/>
-                    <button onClick={handleAmount} disabled={loading||!amount} className="w-full py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                        className="w-full px-4 py-3.5 rounded-2xl text-lg font-semibold outline-none mb-4" style={{background:'var(--bg3)',color:'var(--fg)'}} autoFocus/>
+                    <button onClick={goAmount} disabled={loading||!amount} className="btn-press w-full py-3.5 rounded-2xl font-semibold text-sm text-white disabled:opacity-40" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)',boxShadow:'0 2px 8px rgba(59,130,246,0.3)'}}>
                         {loading?'...':u.next}
                     </button>
                 </div>
             );
 
-            if(step==='username') return (
+            if(step==='user')return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <button onClick={()=>setStep('amount')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
-                    <h2 className="font-bold text-base mb-3">{u.username}</h2>
+                    <Back to="amount"/>
+                    <h2 className="font-bold text-lg mb-3" style={{color:'var(--fg)'}}>{u.username}</h2>
                     <input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Username"
-                        className="w-full px-4 py-3 rounded-xl outline-none mb-4" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}} autoFocus/>
-                    <button onClick={()=>createDeposit(username,false)} disabled={loading||!username} className="w-full py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                        className="w-full px-4 py-3.5 rounded-2xl outline-none mb-4" style={{background:'var(--bg3)',color:'var(--fg)'}} autoFocus/>
+                    <button onClick={()=>create(username,false)} disabled={loading||!username} className="btn-press w-full py-3.5 rounded-2xl font-semibold text-sm text-white disabled:opacity-40" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)',boxShadow:'0 2px 8px rgba(59,130,246,0.3)'}}>
                         {loading?'...':u.createReq}
                     </button>
                 </div>
             );
 
-            if(step==='mining') return (
+            if(step==='mining')return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <button onClick={()=>setStep('method')} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
-                    <h2 className="font-bold text-base mb-3">{u.minerSetup}</h2>
-                    <div className="rounded-xl p-4 text-sm space-y-2" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <p className="font-medium">Username: <code className="px-1.5 py-0.5 rounded" style={{backgroundColor:'var(--ptb-cardHover)'}}>Point</code></p>
-                        <p className="font-medium">Identifier: <code className="px-1.5 py-0.5 rounded" style={{backgroundColor:'var(--ptb-cardHover)'}}>tg{tg?.initDataUnsafe?.user?.id||'...'}</code></p>
+                    <Back to="method"/>
+                    <h2 className="font-bold text-lg mb-3" style={{color:'var(--fg)'}}>{u.minerSetup}</h2>
+                    <div className="rounded-2xl p-4 text-sm space-y-3" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="flex justify-between"><span style={{color:'var(--fg2)'}}>Username</span><code className="font-semibold px-2 py-0.5 rounded-lg" style={{background:'var(--bg3)',color:'var(--fg)'}}>Point</code></div>
+                        <div className="flex justify-between"><span style={{color:'var(--fg2)'}}>Identifier</span><code className="font-semibold px-2 py-0.5 rounded-lg" style={{background:'var(--bg3)',color:'var(--fg)'}}>tg{tg?.initDataUnsafe?.user?.id||'...'}</code></div>
                     </div>
                 </div>
             );
 
-            if(step==='instructions'&&depositInfo) return (
+            if(step==='done'&&info)return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <button onClick={()=>{setStep('method');setDepositInfo(null);}} className="flex items-center gap-1 text-sm mb-4 font-medium" style={{color:'var(--ptb-primary)'}}><I.back s={16}/> {u.back}</button>
-                    <div className="rounded-xl p-4 text-sm space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <p className="font-bold">{u.reqCreated}</p>
-                        <p>{u.sendExact} <b style={{color:'var(--ptb-primary)'}}>{depositInfo.verification_amount} DUCO</b> {u.transfer.toLowerCase()}:</p>
-                        <div className="flex items-center gap-2 rounded-lg p-2" style={{backgroundColor:'var(--ptb-cardHover)'}}>
-                            <code className="flex-1 text-sm font-medium">Point</code>
-                            <button onClick={()=>navigator.clipboard.writeText('Point')} className="p-1 rounded" style={{color:'var(--ptb-primary)'}}><I.copy /></button>
+                    <Back to="method"/>
+                    <div className="rounded-2xl p-4 text-sm space-y-3" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <p className="font-bold" style={{color:'var(--fg)'}}>{u.reqCreated}</p>
+                        <p style={{color:'var(--fg2)'}}>{u.sendExact} <b style={{color:'var(--accent)'}}>{info.verification_amount} DUCO</b></p>
+                        <div className="flex items-center gap-2 rounded-xl p-3" style={{background:'var(--bg3)'}}>
+                            <code className="flex-1 text-sm font-semibold" style={{color:'var(--fg)'}}>Point</code>
+                            <button onClick={()=>navigator.clipboard.writeText('Point')} className="btn-press p-1.5 rounded-lg" style={{color:'var(--accent)'}}>{icons.copy}</button>
                         </div>
-                        <p className="text-xs" style={{color:'var(--tg-theme-hint-color,#999)'}}>{u.autoCheck}</p>
+                        <p className="text-xs" style={{color:'var(--fg3)'}}>{u.autoCheck}</p>
                     </div>
                 </div>
             );
             return null;
         }
 
-        /* ─── Promo Page ─── */
-        function PromoPage() {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const [code, setCode] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [result, setResult] = useState(null);
-            const redeem = async () => {
-                const w=code.replace(/^#/,'').trim();
-                if(!w) return;
-                setLoading(true);
-                try { const r=await api('/api/promo','POST',{word:w}); setResult(r); }
-                catch(e){ setResult({error:e.message}); }
-                setLoading(false);
-            };
-            return (
+        /* ── Promo Page ── */
+        function PromoPage(){
+            const{lang}=useLang();const u=UI[lang];
+            const[code,setCode]=useState('');
+            const[loading,setLoading]=useState(false);
+            const[res,setRes]=useState(null);
+            const go=async()=>{const w=code.replace(/^#/,'').trim();if(!w)return;setLoading(true);try{const r=await api('/api/promo','POST',{word:w});setRes(r)}catch(e){setRes({error:e.message})}setLoading(false)};
+            return(
                 <div className="p-4 max-w-lg mx-auto fade-in">
-                    <h2 className="font-bold text-base mb-4">{u.promoTitle}</h2>
+                    <h2 className="font-bold text-lg mb-4" style={{color:'var(--fg)'}}>{u.promoTitle}</h2>
                     <div className="flex gap-2 mb-4">
                         <input value={code} onChange={e=>setCode(e.target.value)} placeholder={u.promoHint}
-                            className="flex-1 px-4 py-3 rounded-xl outline-none text-sm" style={{backgroundColor:'var(--ptb-input)',color:'var(--tg-theme-text-color,#18181b)'}}/>
-                        <button onClick={redeem} disabled={loading||!code.trim()} className="px-5 py-3 rounded-xl font-medium text-sm disabled:opacity-40" style={{backgroundColor:'var(--ptb-primary)',color:'#fff'}}>
+                            className="flex-1 px-4 py-3 rounded-2xl outline-none text-sm font-medium" style={{background:'var(--bg3)',color:'var(--fg)'}}/>
+                        <button onClick={go} disabled={loading||!code.trim()} className="btn-press px-6 py-3 rounded-2xl font-semibold text-sm text-white disabled:opacity-40" style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)'}}>
                             {loading?'...':'OK'}
                         </button>
                     </div>
-                    {result&&!result.error && (
-                        <div className="rounded-xl p-4 text-sm fade-in" style={{backgroundColor:'var(--ptb-success-bg)',color:'var(--ptb-success)'}}>
-                            <p className="font-bold">{u.promoActivated}</p>
-                            <p>+{result.amount.toFixed(3)} P-Coin | Balance: {result.new_balance.toFixed(3)}</p>
-                        </div>
-                    )}
-                    {result?.error && (
-                        <div className="rounded-xl p-4 text-sm fade-in" style={{backgroundColor:'var(--ptb-error-bg)',color:'var(--ptb-error)'}}>{result.error}</div>
-                    )}
+                    {res&&!res.error&&<div className="rounded-2xl p-4 text-sm fade-in" style={{background:'var(--success-bg)',color:'var(--success)'}}>
+                        <p className="font-bold">{u.promoOk}</p><p>+{res.amount.toFixed(3)} P-Coin | {res.new_balance.toFixed(3)} PC</p>
+                    </div>}
+                    {res?.error&&<div className="rounded-2xl p-4 text-sm fade-in" style={{background:'var(--error-bg)',color:'var(--error)'}}>{res.error}</div>}
                 </div>
             );
         }
 
-        /* ─── Settings Page ─── */
-        function SettingsPage() {
-            const { lang, setLang } = useLang();
-            const u = UI[lang];
-            const [theme, setTheme] = useState(getTheme());
-            const [profile, setProfile] = useState(null);
-            useEffect(()=>{ api('/api/profile').then(setProfile).catch(()=>{}); },[]);
+        /* ── Settings Page ── */
+        function SettingsPage(){
+            const{lang,setLang}=useLang();const u=UI[lang];
+            const[dark,setDark]=useState(()=>localStorage.getItem('ptb-theme')==='dark');
+            const[p,setP]=useState(null);
+            useEffect(()=>{api('/api/profile').then(setP).catch(()=>{})},[]);
 
-            const toggleTheme = (name) => { setTheme(name); applyTheme(name); };
-            const changeLang = async (l) => { setLang(l); try{await api('/api/settings/language','POST',{language:l});}catch{} };
+            const togDark=()=>{const n=!dark;setDark(n);applyTheme(n)};
+            const chLang=async l=>{setLang(l);try{await api('/api/settings/language','POST',{language:l})}catch{}};
 
-            return (
+            return(
                 <div className="p-4 max-w-lg mx-auto space-y-4 fade-in">
-                    <h2 className="font-bold text-base">{u.settingsTitle}</h2>
+                    <h2 className="font-bold text-lg" style={{color:'var(--fg)'}}>{u.settingsTitle}</h2>
 
-                    {/* Theme */}
-                    <div className="rounded-xl p-4 space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <div className="flex items-center gap-2 text-sm font-medium"><I.sun s={16}/> {u.theme}</div>
+                    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="flex items-center gap-2 text-sm font-semibold" style={{color:'var(--fg)'}}><span style={{width:18,height:18}}>{icons.sun}</span>{u.theme}</div>
                         <div className="flex gap-2">
-                            {[{id:'light',icon:<I.sun s={16}/>,label:u.light},{id:'dark',icon:<I.moon s={16}/>,label:u.dark}].map(t=>(
-                                <button key={t.id} onClick={()=>toggleTheme(t.id)}
-                                    className="flex-1 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all"
-                                    style={{
-                                        backgroundColor: theme===t.id?'var(--tg-theme-bg-color,#fff)':'var(--ptb-cardHover)',
-                                        border: theme===t.id?'2px solid var(--ptb-primary)':'2px solid transparent',
-                                        color: 'var(--tg-theme-text-color,#18181b)',
-                                        boxShadow: theme===t.id?'0 2px 8px rgba(0,0,0,0.08)':'none'
-                                    }}>
-                                    {t.icon} {t.label}
+                            <button onClick={()=>!dark&&togDark()} className="btn-press flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                                style={{background:!dark?'var(--accent-light)':'var(--bg3)',color:!dark?'var(--accent)':'var(--fg2)',border:!dark?'2px solid var(--accent)':'2px solid transparent'}}>
+                                <span style={{width:16,height:16}}>{icons.sun}</span>{u.light}
+                            </button>
+                            <button onClick={()=>dark||togDark()} className="btn-press flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                                style={{background:dark?'var(--accent-light)':'var(--bg3)',color:dark?'var(--accent)':'var(--fg2)',border:dark?'2px solid var(--accent)':'2px solid transparent'}}>
+                                <span style={{width:16,height:16}}>{icons.moon}</span>{u.dark}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="flex items-center gap-2 text-sm font-semibold" style={{color:'var(--fg)'}}><span style={{width:18,height:18}}>{icons.globe}</span>{u.lang}</div>
+                        <div className="flex gap-2">
+                            {[{id:'ru',l:'Русский'},{id:'en',l:'English'}].map(x=>(
+                                <button key={x.id} onClick={()=>chLang(x.id)} className="btn-press flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
+                                    style={{background:lang===x.id?'var(--accent-light)':'var(--bg3)',color:lang===x.id?'var(--accent)':'var(--fg2)',border:lang===x.id?'2px solid var(--accent)':'2px solid transparent'}}>
+                                    {x.l}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Language */}
-                    <div className="rounded-xl p-4 space-y-3" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <div className="flex items-center gap-2 text-sm font-medium"><I.globe s={16}/> {u.lang}</div>
-                        <div className="flex gap-2">
-                            {[{id:'ru',label:'Русский'},{id:'en',label:'English'}].map(l=>(
-                                <button key={l.id} onClick={()=>changeLang(l.id)}
-                                    className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
-                                    style={{
-                                        backgroundColor: lang===l.id?'var(--tg-theme-bg-color,#fff)':'var(--ptb-cardHover)',
-                                        border: lang===l.id?'2px solid var(--ptb-primary)':'2px solid transparent',
-                                        color: 'var(--tg-theme-text-color,#18181b)',
-                                        boxShadow: lang===l.id?'0 2px 8px rgba(0,0,0,0.08)':'none'
-                                    }}>
-                                    {l.label}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="rounded-2xl p-4" style={{background:'var(--card)',boxShadow:'var(--shadow)',border:'1px solid var(--card-border)'}}>
+                        <div className="flex items-center gap-2 text-sm font-semibold mb-1" style={{color:'var(--fg)'}}><span style={{width:18,height:18}}>{icons.wallet}</span>{u.wallet}</div>
+                        <p className="text-sm" style={{color:'var(--fg3)'}}>{p?.duco_wallet||u.notLinked}</p>
                     </div>
 
-                    {/* Wallet */}
-                    <div className="rounded-xl p-4" style={{backgroundColor:'var(--ptb-card)'}}>
-                        <div className="flex items-center gap-2 text-sm font-medium mb-2"><I.wallet s={16}/> {u.wallet}</div>
-                        <p className="text-sm" style={{color:'var(--tg-theme-hint-color,#999)'}}>{profile?.duco_wallet||u.notLinked}</p>
-                    </div>
-
-                    <p className="text-center text-xs pt-2" style={{color:'var(--tg-theme-hint-color,#aaa)'}}>Point AI v0.0.2b</p>
+                    <p className="text-center text-xs font-medium pt-1" style={{color:'var(--fg3)'}}>Point AI v0.0.2b</p>
                 </div>
             );
         }
 
-        /* ─── Bottom Nav ─── */
-        function BottomNav({ page, onNavigate }) {
-            const { lang } = useLang();
-            const u = UI[lang];
-            const tabs = [
-                {id:'chat',label:u.chat,Icon:I.chat},
-                {id:'profile',label:u.profile,Icon:I.user},
-                {id:'deposit',label:u.deposit,Icon:I.wallet},
-                {id:'history',label:u.history,Icon:I.clock},
-                {id:'settings',label:u.settings,Icon:I.gear},
+        /* ── Bottom Nav ── */
+        function BottomNav({page,onNav}){
+            const{lang}=useLang();const u=UI[lang];
+            const tabs=[
+                {id:'chat',label:u.chat,icon:icons.chat},
+                {id:'profile',label:u.profile,icon:icons.user},
+                {id:'deposit',label:u.deposit,icon:icons.wallet},
+                {id:'history',label:u.history,icon:icons.clock},
+                {id:'settings',label:u.settings,icon:icons.gear},
             ];
-            return (
-                <nav className="flex items-center justify-around border-t shrink-0 py-1.5 safe-bottom" style={{borderColor:'var(--ptb-border)',backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
-                    {tabs.map(({id,label,Icon})=>(
-                        <button key={id} onClick={()=>onNavigate(id)}
-                            className="flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
-                            style={{color: page===id?'var(--ptb-primary)':'var(--tg-theme-hint-color,#71717a)'}}>
-                            <Icon s={20}/><span className="text-[10px]">{label}</span>
+            return(
+                <nav className="flex items-center justify-around shrink-0 safe-bottom" style={{background:'var(--nav-bg)',borderTop:'1px solid var(--nav-border)',paddingBottom:'max(6px,env(safe-area-inset-bottom))'}}>
+                    {tabs.map(({id,label,icon})=>{
+                        const active=page===id;
+                        return <button key={id} onClick={()=>onNav(id)} className="btn-press flex flex-col items-center gap-0.5 py-2 px-3 transition-colors" style={{color:active?'var(--accent)':'var(--fg3)'}}>
+                            <span className={active?'':''}>{icon}</span>
+                            <span className="text-[10px] font-semibold">{label}</span>
                         </button>
-                    ))}
+                    })}
                 </nav>
             );
         }
 
-        /* ─── App ─── */
-        function App() {
-            const [page, setPage] = useState('chat');
-            const [lang, setLangState] = useState(()=> localStorage.getItem('ptb-lang')||'ru');
-
-            const setLang = (l) => { setLangState(l); localStorage.setItem('ptb-lang',l); };
-            const pages = {
-                chat:<ChatPage onNavigate={setPage}/>, profile:<ProfilePage onNavigate={setPage}/>,
-                deposit:<DepositPage/>, history:<HistoryPage/>, promo:<PromoPage/>, settings:<SettingsPage/>,
-            };
-
-            return (
+        /* ── App ── */
+        function App(){
+            const[page,setPage]=useState('chat');
+            const[lang,setLangS]=useState(()=>localStorage.getItem('ptb-lang')||'ru');
+            const setLang=l=>{setLangS(l);localStorage.setItem('ptb-lang',l)};
+            const pages={chat:<ChatPage onNav={setPage}/>,profile:<ProfilePage onNav={setPage}/>,deposit:<DepositPage/>,history:<HistoryPage/>,settings:<SettingsPage/>};
+            return(
                 <LangCtx.Provider value={{lang,setLang}}>
-                    <div className="app-shell flex flex-col h-screen" style={{backgroundColor:'var(--tg-theme-bg-color,#fff)'}}>
+                    <div className="app-shell flex flex-col" style={{background:'var(--bg)',height:'100dvh'}}>
                         <div className="flex-1 overflow-y-auto">{pages[page]}</div>
-                        <BottomNav page={page} onNavigate={setPage}/>
+                        <BottomNav page={page} onNav={setPage}/>
                     </div>
                 </LangCtx.Provider>
             );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
     </script>
 </body>
 </html>
